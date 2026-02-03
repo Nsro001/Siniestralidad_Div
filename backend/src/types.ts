@@ -1,6 +1,6 @@
 export type PremiumRow = {
   clientName: string;
-  clientRut?: string;
+  clientRut: string | undefined;
   period: string; // YYYY-MM
   coverage: string;
   premiumUf: number;
