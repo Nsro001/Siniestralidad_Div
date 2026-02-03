@@ -6,7 +6,7 @@ import { PrimasReport } from './components/PrimasReport'
 import { GastosReport } from './components/GastosReport'
 
 function App() {
-  const [uploadsComplete, setUploadsComplete] = useState(false);
+  //const [uploadsComplete, setUploadsComplete] = useState(false);
   const [filters, setFilters] = useState<{ client: string, coverages: string[], periods: string[] } | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 

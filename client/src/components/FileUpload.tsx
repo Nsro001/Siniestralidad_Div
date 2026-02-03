@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import api from '../api';
 import { UploadCloud, CheckCircle, AlertCircle } from 'lucide-react';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+//import { clsx } from 'clsx';
+//import { twMerge } from 'tailwind-merge';
 
 interface FileUploadProps {
     onUploadSuccess: () => void;
