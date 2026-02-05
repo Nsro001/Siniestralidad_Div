@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { fetchFilters, fetchGastosReport, fetchPrimasReport, uploadFile } from "./api";
 import { FiltersResponse, GastosReport, PrimasReport } from "./types";
 import GastosDistribution from "./components/GastosDistribution";
@@ -8,6 +8,35 @@ import TopProvidersTable from "./components/TopProvidersTable";
 import TopInsuredTable from "./components/TopInsuredTable";
 import SystemHealthReport from "./components/SystemHealthReport";
 import HealthByPrestationReport from "./components/HealthByPrestationReport";
+
+type ReportToggleSectionProps = {
+  title: string;
+  checked: boolean;
+  onToggle: () => void;
+  disabled?: boolean;
+  children: ReactNode;
+};
+
+function ReportToggleSection({ title, checked, onToggle, disabled, children }: ReportToggleSectionProps) {
+  return (
+    <div className="glass-panel rounded-3xl p-6 shadow-soft-xl">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-display text-xl">{title}</h2>
+        <label className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-ink/60">
+          <span>Mostrar</span>
+          <input
+            type="checkbox"
+            className="h-4 w-4 accent-ink"
+            checked={checked}
+            onChange={onToggle}
+            disabled={disabled}
+          />
+        </label>
+      </div>
+      {checked ? <div className="mt-4">{children}</div> : <p className="mt-4 text-xs text-ink/60">Reporte oculto.</p>}
+    </div>
+  );
+}
 
 export default function App() {
   const [theme, setTheme] = useState("classic");
@@ -199,78 +228,6 @@ export default function App() {
         {error && <p className="mt-4 text-sm text-ember">{error}</p>}
       </section>
 
-      <section className="no-print mt-8 glass-panel rounded-3xl p-6 shadow-soft-xl">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-moss">Panel de reportes</p>
-            <h2 className="font-display text-lg text-ink">Selecciona quÃ© reportes mostrar</h2>
-          </div>
-          <p className="text-xs text-ink/60">Los cambios se aplican al PDF.</p>
-        </div>
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
-          <label className="flex items-center justify-between rounded-2xl border border-ink/10 bg-white/70 px-4 py-3 text-sm">
-            <span>Siniestralidad por cobertura</span>
-            <input
-              type="checkbox"
-              className="h-4 w-4 accent-ink"
-              checked={visibleReports.primas}
-              onChange={() => toggleReportVisibility("primas")}
-              disabled={!primasReport}
-            />
-          </label>
-          <label className="flex items-center justify-between rounded-2xl border border-ink/10 bg-white/70 px-4 py-3 text-sm">
-            <span>DistribuciÃ³n de prestaciones</span>
-            <input
-              type="checkbox"
-              className="h-4 w-4 accent-ink"
-              checked={visibleReports.gastosDistribution}
-              onChange={() => toggleReportVisibility("gastosDistribution")}
-              disabled={!gastosReport}
-            />
-          </label>
-          <label className="flex items-center justify-between rounded-2xl border border-ink/10 bg-white/70 px-4 py-3 text-sm">
-            <span>Salud del sistema</span>
-            <input
-              type="checkbox"
-              className="h-4 w-4 accent-ink"
-              checked={visibleReports.systemHealth}
-              onChange={() => toggleReportVisibility("systemHealth")}
-              disabled={!gastosReport}
-            />
-          </label>
-          <label className="flex items-center justify-between rounded-2xl border border-ink/10 bg-white/70 px-4 py-3 text-sm">
-            <span>Salud por prestaciÃ³n</span>
-            <input
-              type="checkbox"
-              className="h-4 w-4 accent-ink"
-              checked={visibleReports.healthByPrestation}
-              onChange={() => toggleReportVisibility("healthByPrestation")}
-              disabled={!gastosReport}
-            />
-          </label>
-          <label className="flex items-center justify-between rounded-2xl border border-ink/10 bg-white/70 px-4 py-3 text-sm">
-            <span>Top prestadores</span>
-            <input
-              type="checkbox"
-              className="h-4 w-4 accent-ink"
-              checked={visibleReports.topProviders}
-              onChange={() => toggleReportVisibility("topProviders")}
-              disabled={!gastosReport}
-            />
-          </label>
-          <label className="flex items-center justify-between rounded-2xl border border-ink/10 bg-white/70 px-4 py-3 text-sm">
-            <span>Top asegurados</span>
-            <input
-              type="checkbox"
-              className="h-4 w-4 accent-ink"
-              checked={visibleReports.topInsured}
-              onChange={() => toggleReportVisibility("topInsured")}
-              disabled={!gastosReport}
-            />
-          </label>
-        </div>
-      </section>
-
       <div id="report-root" className="mt-10 space-y-10">
         <div className="print-only mb-6">
           <p className="text-sm uppercase tracking-[0.3em] text-moss">Informe de Siniestralidad</p>
@@ -280,12 +237,60 @@ export default function App() {
             <span>Periodo: {selectedPeriods.length ? selectedPeriods.join(", ") : "Sin seleccionar"}</span>
           </div>
         </div>
-        {primasReport && visibleReports.primas && <PrimasCharts report={primasReport} />}
-        {gastosReport && visibleReports.gastosDistribution && <GastosDistribution report={gastosReport} />}
-        {gastosReport && visibleReports.systemHealth && <SystemHealthReport report={gastosReport} />}
-        {gastosReport && visibleReports.healthByPrestation && <HealthByPrestationReport report={gastosReport} />}
-        {gastosReport && visibleReports.topProviders && <TopProvidersTable report={gastosReport} />}
-        {gastosReport && visibleReports.topInsured && <TopInsuredTable report={gastosReport} />}
+        {primasReport && (
+          <ReportToggleSection
+            title="Siniestralidad por cobertura"
+            checked={visibleReports.primas}
+            onToggle={() => toggleReportVisibility("primas")}
+          >
+            <PrimasCharts report={primasReport} />
+          </ReportToggleSection>
+        )}
+        {gastosReport && (
+          <ReportToggleSection
+            title="DistribuciÃ³n de prestaciones"
+            checked={visibleReports.gastosDistribution}
+            onToggle={() => toggleReportVisibility("gastosDistribution")}
+          >
+            <GastosDistribution report={gastosReport} />
+          </ReportToggleSection>
+        )}
+        {gastosReport && (
+          <ReportToggleSection
+            title="Salud del sistema"
+            checked={visibleReports.systemHealth}
+            onToggle={() => toggleReportVisibility("systemHealth")}
+          >
+            <SystemHealthReport report={gastosReport} />
+          </ReportToggleSection>
+        )}
+        {gastosReport && (
+          <ReportToggleSection
+            title="Salud por prestaciÃ³n"
+            checked={visibleReports.healthByPrestation}
+            onToggle={() => toggleReportVisibility("healthByPrestation")}
+          >
+            <HealthByPrestationReport report={gastosReport} />
+          </ReportToggleSection>
+        )}
+        {gastosReport && (
+          <ReportToggleSection
+            title="Top prestadores"
+            checked={visibleReports.topProviders}
+            onToggle={() => toggleReportVisibility("topProviders")}
+          >
+            <TopProvidersTable report={gastosReport} />
+          </ReportToggleSection>
+        )}
+        {gastosReport && (
+          <ReportToggleSection
+            title="Top asegurados"
+            checked={visibleReports.topInsured}
+            onToggle={() => toggleReportVisibility("topInsured")}
+          >
+            <TopInsuredTable report={gastosReport} />
+          </ReportToggleSection>
+        )}
       </div>
     </div>
   );
