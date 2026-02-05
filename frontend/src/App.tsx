@@ -20,6 +20,14 @@ export default function App() {
   const [primasReport, setPrimasReport] = useState<PrimasReport | null>(null);
   const [gastosReport, setGastosReport] = useState<GastosReport | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [visibleReports, setVisibleReports] = useState({
+    primas: true,
+    gastosDistribution: true,
+    systemHealth: true,
+    healthByPrestation: true,
+    topProviders: true,
+    topInsured: true,
+  });
 
   const readyForFilters = premiumUploaded && claimsUploaded;
 
@@ -88,6 +96,10 @@ export default function App() {
     } else {
       setClaimsUploaded(true);
     }
+  };
+
+  const toggleReportVisibility = (key: keyof typeof visibleReports) => {
+    setVisibleReports((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   return (
@@ -187,6 +199,78 @@ export default function App() {
         {error && <p className="mt-4 text-sm text-ember">{error}</p>}
       </section>
 
+      <section className="no-print mt-8 glass-panel rounded-3xl p-6 shadow-soft-xl">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-moss">Panel de reportes</p>
+            <h2 className="font-display text-lg text-ink">Selecciona quÃ© reportes mostrar</h2>
+          </div>
+          <p className="text-xs text-ink/60">Los cambios se aplican al PDF.</p>
+        </div>
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <label className="flex items-center justify-between rounded-2xl border border-ink/10 bg-white/70 px-4 py-3 text-sm">
+            <span>Siniestralidad por cobertura</span>
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-ink"
+              checked={visibleReports.primas}
+              onChange={() => toggleReportVisibility("primas")}
+              disabled={!primasReport}
+            />
+          </label>
+          <label className="flex items-center justify-between rounded-2xl border border-ink/10 bg-white/70 px-4 py-3 text-sm">
+            <span>DistribuciÃ³n de prestaciones</span>
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-ink"
+              checked={visibleReports.gastosDistribution}
+              onChange={() => toggleReportVisibility("gastosDistribution")}
+              disabled={!gastosReport}
+            />
+          </label>
+          <label className="flex items-center justify-between rounded-2xl border border-ink/10 bg-white/70 px-4 py-3 text-sm">
+            <span>Salud del sistema</span>
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-ink"
+              checked={visibleReports.systemHealth}
+              onChange={() => toggleReportVisibility("systemHealth")}
+              disabled={!gastosReport}
+            />
+          </label>
+          <label className="flex items-center justify-between rounded-2xl border border-ink/10 bg-white/70 px-4 py-3 text-sm">
+            <span>Salud por prestaciÃ³n</span>
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-ink"
+              checked={visibleReports.healthByPrestation}
+              onChange={() => toggleReportVisibility("healthByPrestation")}
+              disabled={!gastosReport}
+            />
+          </label>
+          <label className="flex items-center justify-between rounded-2xl border border-ink/10 bg-white/70 px-4 py-3 text-sm">
+            <span>Top prestadores</span>
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-ink"
+              checked={visibleReports.topProviders}
+              onChange={() => toggleReportVisibility("topProviders")}
+              disabled={!gastosReport}
+            />
+          </label>
+          <label className="flex items-center justify-between rounded-2xl border border-ink/10 bg-white/70 px-4 py-3 text-sm">
+            <span>Top asegurados</span>
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-ink"
+              checked={visibleReports.topInsured}
+              onChange={() => toggleReportVisibility("topInsured")}
+              disabled={!gastosReport}
+            />
+          </label>
+        </div>
+      </section>
+
       <div id="report-root" className="mt-10 space-y-10">
         <div className="print-only mb-6">
           <p className="text-sm uppercase tracking-[0.3em] text-moss">Informe de Siniestralidad</p>
@@ -196,12 +280,12 @@ export default function App() {
             <span>Periodo: {selectedPeriods.length ? selectedPeriods.join(", ") : "Sin seleccionar"}</span>
           </div>
         </div>
-        {primasReport && <PrimasCharts report={primasReport} />}
-        {gastosReport && <GastosDistribution report={gastosReport} />}
-        {gastosReport && <SystemHealthReport report={gastosReport} />}
-        {gastosReport && <HealthByPrestationReport report={gastosReport} />}
-        {gastosReport && <TopProvidersTable report={gastosReport} />}
-        {gastosReport && <TopInsuredTable report={gastosReport} />}
+        {primasReport && visibleReports.primas && <PrimasCharts report={primasReport} />}
+        {gastosReport && visibleReports.gastosDistribution && <GastosDistribution report={gastosReport} />}
+        {gastosReport && visibleReports.systemHealth && <SystemHealthReport report={gastosReport} />}
+        {gastosReport && visibleReports.healthByPrestation && <HealthByPrestationReport report={gastosReport} />}
+        {gastosReport && visibleReports.topProviders && <TopProvidersTable report={gastosReport} />}
+        {gastosReport && visibleReports.topInsured && <TopInsuredTable report={gastosReport} />}
       </div>
     </div>
   );
