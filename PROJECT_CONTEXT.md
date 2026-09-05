@@ -132,9 +132,9 @@ Regla:
 Parentesco = T -> titular
 otros valores -> carga
 
-## Última modificación pendiente
+## Última modificación realizada
 
-Rediseñar ExecutiveSummary.tsx para PDF.
+Se rediseñó ExecutiveSummary.tsx para PDF (2026-09-05).
 
 Objetivo visual:
 
@@ -233,8 +233,8 @@ Metadata -> Read-only
 
 ## Próximos objetivos
 
-1. Mejorar resumen ejecutivo PDF
-2. Optimizar layout A4
+1. Validar visualmente el PDF con datos reales
+2. Extender la optimización A4 al resto de los reportes
 3. Agregar nómina de asegurados
 4. Calcular tasa de utilización
 5. Siniestralidad per cápita

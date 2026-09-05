@@ -47,12 +47,26 @@ export default function ExecutiveSummary({ report, claimants, periods }: Props) 
       };
     })();
 
-  const periodLabel = periods.length
-    ? `${periods[0]} a ${periods[periods.length - 1]}`
+  const sortedPeriods = [...periods].sort();
+  const shortPeriod = (period: string) => {
+    const match = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(period);
+    if (!match) return period;
+    const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    return `${months[Number(match[2]) - 1]} ${match[1]}`;
+  };
+  const periodLabel = sortedPeriods.length
+    ? sortedPeriods.length === 1
+      ? shortPeriod(sortedPeriods[0])
+      : `${shortPeriod(sortedPeriods[0])} a ${shortPeriod(sortedPeriods[sortedPeriods.length - 1])}`
     : "Sin período";
+  const indicators = [
+    { coverage: "Consolidado S+D+C", totals: consolidated },
+    { coverage: "Salud", totals: totalsFor(report, "Salud") },
+    { coverage: "Dental", totals: totalsFor(report, "Dental") },
+  ];
 
   return (
-    <section className="glass-panel rounded-3xl p-6 shadow-soft-xl">
+    <section className="executive-summary glass-panel rounded-3xl p-6 shadow-soft-xl">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.28em] text-moss">Resumen ejecutivo</p>
@@ -61,42 +75,37 @@ export default function ExecutiveSummary({ report, claimants, periods }: Props) 
         <p className="text-sm text-ink/60">{periodLabel}</p>
       </div>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <div className="rounded-2xl border border-ink/10 bg-white/65 p-5 xl:col-span-2">
-          <p className="text-xs uppercase tracking-[0.2em] text-ink/55">Consolidado Salud + Dental + Catastrófico</p>
-          <p className="mt-3 font-display text-4xl">{fmtPct(consolidated.lossRatio)}</p>
-          <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <p className="text-ink/55">Prima</p>
-              <p className="font-semibold">UF {fmtUf(consolidated.premiumUf)}</p>
+      <div className="executive-indicators">
+        {indicators.map(({ coverage, totals }) => (
+          <div key={coverage} className="executive-indicator">
+            <div className="executive-circle font-display" aria-label={`Siniestralidad ${coverage}`}>
+              {totals ? fmtPct(totals.lossRatio) : "—"}
             </div>
-            <div>
-              <p className="text-ink/55">Gasto</p>
-              <p className="font-semibold">UF {fmtUf(consolidated.spendUf)}</p>
-            </div>
+            <p className="mt-3 font-semibold">{coverage}</p>
+            <p className="mt-1 text-xs text-ink/60">{periodLabel}</p>
           </div>
-        </div>
-
-        <div className="rounded-2xl border border-ink/10 bg-white/65 p-5">
-          <p className="text-xs uppercase tracking-[0.2em] text-ink/55">Titulares con uso</p>
-          <p className="mt-3 font-display text-4xl">{claimants?.titularClaimants ?? "—"}</p>
-          <p className="mt-2 text-xs text-ink/55">Titulares únicos presentes en la sábana de gastos.</p>
-        </div>
-
-        <div className="rounded-2xl border border-ink/10 bg-white/65 p-5">
-          <p className="text-xs uppercase tracking-[0.2em] text-ink/55">Cargas con uso</p>
-          <p className="mt-3 font-display text-4xl">{claimants?.dependentClaimants ?? "—"}</p>
-          <p className="mt-2 text-xs text-ink/55">Cargas únicas presentes en la sábana de gastos.</p>
-        </div>
-
-        <div className="rounded-2xl border border-ink/10 bg-white/65 p-5">
-          <p className="text-xs uppercase tracking-[0.2em] text-ink/55">Períodos</p>
-          <p className="mt-3 font-display text-4xl">{periods.length}</p>
-          <p className="mt-2 text-xs text-ink/55">Meses incluidos en el cálculo.</p>
-        </div>
+        ))}
       </div>
 
-      <div className="mt-6 overflow-x-auto rounded-2xl border border-ink/10 bg-white/60">
+      <div className="executive-claimants mt-6 rounded-2xl border border-ink/10 bg-white/60">
+        <table className="w-full text-sm">
+          <caption className="px-4 py-2 text-left text-xs text-ink/60">
+            Personas únicas con uso · {periods.length} períodos incluidos
+          </caption>
+          <tbody>
+            <tr className="border-t border-ink/10">
+              <th scope="row" className="px-4 py-2 text-left font-medium">Titulares con uso</th>
+              <td className="px-4 py-2 text-right font-semibold">{claimants?.titularClaimants ?? "—"}</td>
+            </tr>
+            <tr className="border-t border-ink/10">
+              <th scope="row" className="px-4 py-2 text-left font-medium">Cargas con uso</th>
+              <td className="px-4 py-2 text-right font-semibold">{claimants?.dependentClaimants ?? "—"}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div className="executive-totals mt-6 overflow-x-auto rounded-2xl border border-ink/10 bg-white/60">
         <table className="w-full min-w-[680px] text-sm">
           <thead className="border-b border-ink/10 text-left text-xs uppercase tracking-[0.18em] text-ink/55">
             <tr>
