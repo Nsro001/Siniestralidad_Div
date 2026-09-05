@@ -22,3 +22,9 @@
 - Validación: build de frontend correcto; TypeScript correcto con --types vite/client; renderizado estático verificado con datos de ejemplo, períodos desordenados y datos ausentes.
 - El chequeo TypeScript sin --types vite/client detecta la declaración faltante de ImportMeta.env en api.ts, ajena a este cambio.
 - Pendiente: revisión visual del PDF con datos reales y optimización A4 del resto de los reportes.
+
+## 2026-09-05 — Ajuste de legibilidad
+- Indicadores centrados con mayor separación y período corto bajo cada cobertura (Nov 2024 to Oct 2025).
+- Titulares y cargas en tabla de dos columnas, centrada y de ancho compacto.
+- Tabla financiera conservada.
+- El despliegue anterior no se activó: el push requiere autenticación de GitHub en el equipo.

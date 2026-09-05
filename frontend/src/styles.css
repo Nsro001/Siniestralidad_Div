@@ -215,8 +215,9 @@ body {
 .executive-indicators {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
-  margin-top: 1.5rem;
+  gap: 1.5rem;
+  max-width: 48rem;
+  margin: 2rem auto;
 }
 
 .executive-indicator {
@@ -237,6 +238,20 @@ body {
   color: var(--text);
   font-size: clamp(1.25rem, 3vw, 2rem);
   font-variant-numeric: tabular-nums;
+}
+
+.executive-claimants {
+  max-width: 30rem;
+  margin-inline: auto;
+}
+
+.executive-claimants table {
+  table-layout: fixed;
+}
+
+.executive-claimants th + th,
+.executive-claimants td + td {
+  border-left: 1px solid var(--panel-border);
 }
 
 @media screen and (max-width: 480px) {
@@ -283,7 +298,7 @@ body {
   .executive-indicators {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 5mm;
-    margin-top: 5mm;
+    margin: 6mm auto;
     break-inside: avoid;
   }
 

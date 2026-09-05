@@ -57,7 +57,7 @@ export default function ExecutiveSummary({ report, claimants, periods }: Props) 
   const periodLabel = sortedPeriods.length
     ? sortedPeriods.length === 1
       ? shortPeriod(sortedPeriods[0])
-      : `${shortPeriod(sortedPeriods[0])} a ${shortPeriod(sortedPeriods[sortedPeriods.length - 1])}`
+      : `${shortPeriod(sortedPeriods[0])} to ${shortPeriod(sortedPeriods[sortedPeriods.length - 1])}`
     : "Sin período";
   const indicators = [
     { coverage: "Consolidado S+D+C", totals: consolidated },
@@ -72,7 +72,6 @@ export default function ExecutiveSummary({ report, claimants, periods }: Props) 
           <p className="text-xs uppercase tracking-[0.28em] text-moss">Resumen ejecutivo</p>
           <h2 className="mt-1 font-display text-2xl">Siniestralidad totalizada</h2>
         </div>
-        <p className="text-sm text-ink/60">{periodLabel}</p>
       </div>
 
       <div className="executive-indicators">
@@ -92,14 +91,16 @@ export default function ExecutiveSummary({ report, claimants, periods }: Props) 
           <caption className="px-4 py-2 text-left text-xs text-ink/60">
             Personas únicas con uso · {periods.length} períodos incluidos
           </caption>
-          <tbody>
+          <thead>
             <tr className="border-t border-ink/10">
-              <th scope="row" className="px-4 py-2 text-left font-medium">Titulares con uso</th>
-              <td className="px-4 py-2 text-right font-semibold">{claimants?.titularClaimants ?? "—"}</td>
+              <th scope="col" className="px-4 py-2 text-center font-medium">Titulares con uso</th>
+              <th scope="col" className="px-4 py-2 text-center font-medium">Cargas con uso</th>
             </tr>
-            <tr className="border-t border-ink/10">
-              <th scope="row" className="px-4 py-2 text-left font-medium">Cargas con uso</th>
-              <td className="px-4 py-2 text-right font-semibold">{claimants?.dependentClaimants ?? "—"}</td>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="px-4 pb-3 text-center text-xl font-semibold">{claimants?.titularClaimants ?? "—"}</td>
+              <td className="px-4 pb-3 text-center text-xl font-semibold">{claimants?.dependentClaimants ?? "—"}</td>
             </tr>
           </tbody>
         </table>
