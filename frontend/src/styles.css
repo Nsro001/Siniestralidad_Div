@@ -336,3 +336,76 @@ body {
     break-inside: avoid;
   }
 }
+
+/* Acceso y administración: estilos aislados de los reportes. */
+.account-ui { color: var(--text); }
+.login-page { min-height: 100vh; display: grid; place-items: center; padding: 1.5rem; }
+.login-card { width: 100%; max-width: 28rem; padding: 2rem; border-radius: 1.5rem; }
+.account-eyebrow { color: var(--moss); font-size: .75rem; letter-spacing: .16em; text-transform: uppercase; }
+.account-muted { color: var(--muted); }
+.account-form { display: grid; gap: 1rem; }
+.account-form label { display: grid; gap: .4rem; font-size: .875rem; font-weight: 500; }
+.account-form input:not([type="checkbox"]), .account-form select {
+  width: 100%; min-width: 0; border: 1px solid var(--panel-border); border-radius: .65rem;
+  padding: .7rem .85rem; background: var(--panel-strong); color: var(--text);
+}
+.account-ui button { border-radius: .65rem; padding: .65rem 1rem; font-size: .875rem; }
+.account-ui button:disabled { opacity: .55; cursor: wait; }
+.account-primary { background: #2b6f8c; color: white; font-weight: 600; }
+.account-secondary { border: 1px solid var(--panel-border); }
+.account-ui :is(button, input, select):focus-visible { outline: 2px solid var(--ocean); outline-offset: 3px; }
+.account-error { color: #a32727; background: #fff1f1; padding: .8rem; border-radius: .65rem; }
+.account-success { color: #226240; background: #effaf2; padding: .8rem; border-radius: .65rem; }
+.account-bar { padding: 1rem 3rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; border-bottom: 1px solid var(--panel-border); background: var(--panel); }
+.account-nav { display: flex; flex-wrap: wrap; gap: .4rem; }
+.account-nav [aria-current="page"] { background: #2b6f8c; color: white; }
+.accounts-page { max-width: 80rem; margin: auto; padding: 2.5rem 3rem; }
+.accounts-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: 1.5rem; align-items: start; }
+.account-card { border-radius: 1.25rem; padding: 1.5rem; }
+.account-form .account-checkbox { display: flex; align-items: center; gap: .65rem; padding: .45rem 0; }
+.account-checkbox input { width: 1.1rem; height: 1.1rem; flex-shrink: 0; accent-color: #2b6f8c; }
+.client-checklist { max-height: 20rem; overflow-y: auto; border: 1px solid var(--panel-border); padding: .75rem 1rem; border-radius: .65rem; }
+.client-checklist legend { font-size: .85rem; padding-inline: .3rem; }
+@media screen and (max-width: 760px) {
+  .account-bar { align-items: start; flex-direction: column; padding: 1rem 1.5rem; }
+  .accounts-page { padding: 1.5rem; }
+  .accounts-grid { grid-template-columns: 1fr; }
+}
+
+.portfolio-heading { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.portfolio-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 48rem; }
+.portfolio-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.portfolio-stats strong { display: block; font-size: clamp(1.4rem, 2.5vw, 2rem); margin: .6rem 0; }
+.portfolio-stats span { font-size: .8rem; color: var(--muted); }
+.portfolio-table { overflow-x: auto; }
+.portfolio-table table { width: 100%; border-collapse: collapse; text-align: left; font-size: .9rem; }
+.portfolio-table th { color: var(--muted); font-size: .75rem; font-weight: 500; }
+.portfolio-table th, .portfolio-table td { padding: 1rem .6rem; border-bottom: 1px solid var(--panel-border); vertical-align: top; }
+.portfolio-table td:nth-child(3), .portfolio-table td:nth-child(4) { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.account-ui .portfolio-link { padding: 0; text-align: left; font-weight: 600; color: #2b6f8c; }
+.portfolio-link:hover { text-decoration: underline; }
+.portfolio-insured { display: grid; gap: .2rem; margin-bottom: .65rem; min-width: 10rem; font-size: .8rem; }
+.portfolio-insured span { color: var(--muted); }
+.portfolio-renewals { display: grid; gap: 1rem; }
+.portfolio-renewals li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+@media (max-width: 760px) { .portfolio-stats, .portfolio-filters { grid-template-columns: 1fr; } }
+
+.report-view-controls { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.report-view-controls > div { flex: 1 1 24rem; }
+.report-presentation { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; background: var(--bg, #f5f2ed); color: var(--text); }
+.presentation-header { padding: 1.25rem 2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--panel-border); }
+.presentation-content { flex: 1; min-height: 0; overflow: auto; padding: 2rem; }
+.presentation-content > * { max-width: 90rem; margin-inline: auto; }
+.presentation-content .h-64 { height: clamp(16rem, 48vh, 40rem); }
+.presentation-controls { display: flex; justify-content: center; align-items: center; gap: 1rem; flex-wrap: wrap; padding: 1rem; border-top: 1px solid var(--panel-border); }
+.presentation-controls select { background: var(--panel-strong); color: var(--text); border: 1px solid var(--panel-border); border-radius: .6rem; padding: .6rem; max-width: min(22rem, 75vw); }
+@media (max-width: 760px) { .presentation-header { padding: 1rem; flex-wrap: wrap; } .presentation-content { padding: 1rem; } .presentation-controls { gap: .5rem; } }
+
+.monthly-detail { border: 1px solid var(--panel-border); border-radius: 1rem; padding: 1.5rem; background: var(--panel-strong); }
+.monthly-insights { border-left: 3px solid var(--ocean); padding-left: 1rem; display: grid; gap: .6rem; }
+.monthly-ranking { display: grid; gap: .8rem; margin-top: 1rem; font-size: .85rem; }
+.monthly-ranking li { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+
+@media print {
+  .expense-comparison-table { max-height: none; overflow: visible; }
+}

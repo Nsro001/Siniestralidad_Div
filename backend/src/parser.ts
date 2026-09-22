@@ -10,7 +10,7 @@ const normalizeKey = (value: string) =>
     .replace(/[^a-z0-9]/g, "");
 
 const parseWorkbook = (buffer: Buffer) => {
-  const workbook = xlsx.read(buffer, { type: "buffer", cellDates: true });
+  const workbook = xlsx.read(buffer, { type: "buffer", cellDates: false });
   const sheetName = workbook.SheetNames[0];
   if (!sheetName) throw new Error("No se encontro hoja en el archivo.");
   const sheet = workbook.Sheets[sheetName];
@@ -85,12 +85,25 @@ export const parsePremiums = (buffer: Buffer): PremiumRow[] => {
   const premiumKey = findHeaderKey(headers, ["Prima UF"]);
   const spendKey = findHeaderKey(headers, ["Gasto UF"]);
 
+  const policyKey = findHeaderKey(headers, ["Póliza"]);
+  const holdersKey = findHeaderKey(headers, ["N.º titulares", "Titulares"]);
+  const dependentsKey = findHeaderKey(headers, ["N.º carga", "N.º cargas", "Cargas"]);
+  const kamKey = findHeaderKey(headers, ["KAM", "AKM"]);
+  const managerKey = findHeaderKey(headers, ["Jefe"]);
+  const renewalKey = findHeaderKey(headers, ["Fecha renovación", "Renovación"]);
+  const count = (value: unknown): number | null => {
+    if (value === "" || value == null) return null;
+    const number = typeof value === "number" ? value : Number(String(value).trim());
+    if (!Number.isSafeInteger(number) || number < 0) throw new Error("Cantidad de asegurados inválida.");
+    return number;
+  };
+
   if (!clientNameKey || !periodKey || !coverageKey || !premiumKey || !spendKey) {
     throw new Error("Headers de primas no coinciden con el formato esperado.");
   }
 
   return rows
-    .map((row) => {
+    .map((row): PremiumRow | null => {
       const clientName = String(row[clientNameKey] ?? "").trim();
       const period = toPeriod(row[periodKey]);
       if (!clientName || !period) return null;
@@ -99,6 +112,12 @@ export const parsePremiums = (buffer: Buffer): PremiumRow[] => {
         clientRut: clientRutKey ? String(row[clientRutKey] ?? "").trim() : undefined,
         period,
         coverage: String(row[coverageKey] ?? "").trim(),
+        policy: policyKey ? String(row[policyKey] ?? "").trim() : "",
+        holders: holdersKey ? count(row[holdersKey]) : null,
+        dependents: dependentsKey ? count(row[dependentsKey]) : null,
+        kam: kamKey ? String(row[kamKey] ?? "").trim() : "",
+        manager: managerKey ? String(row[managerKey] ?? "").trim() : "",
+        renewalDate: renewalKey ? parseExcelDate(row[renewalKey])?.toISOString().slice(0, 10) ?? null : null,
         premiumUf: parseNumber(row[premiumKey]),
         spendUf: parseNumber(row[spendKey]),
       };

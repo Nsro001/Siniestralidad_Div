@@ -3,6 +3,12 @@ export type PremiumRow = {
   clientRut: string | undefined;
   period: string; // YYYY-MM
   coverage: string;
+  policy?: string;
+  holders?: number | null;
+  dependents?: number | null;
+  kam?: string;
+  manager?: string;
+  renewalDate?: string | null;
   premiumUf: number;
   spendUf: number;
 };
@@ -31,7 +37,7 @@ export type FiltersResponse = {
 
 export type PrimasReportSeries = {
   coverage: string;
-  series: Array<{ period: string; premiumUf: number; spendUf: number }>;
+  series: Array<{ period: string; premiumUf: number; spendUf: number; previousPeriod?: string; previousLossRatio?: number | null }>;
 };
 
 export type GastosDistributionRow = {
@@ -39,6 +45,7 @@ export type GastosDistributionRow = {
   totalUf: number;
   percent: number;
   percentCartera?: number;
+  previousTotalUf?: number | null; previousPercent?: number | null; variationPercent?: number | null; trend?: "up" | "down" | "stable" | "unavailable";
 };
 
 export type TopProviderRow = {

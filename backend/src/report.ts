@@ -12,7 +12,7 @@ import {
 
 const CONSOLIDATED = "Consolidado S+D+C";
 const CONSOLIDATED_SET = new Set(["Salud", "Dental", "Catastrófico"]);
-const EXCLUDED_PRESTATIONS = new Set([
+export const EXCLUDED_PRESTATIONS = new Set([
   "COBERTURA I-MED CONDICIONES RESTRINGIDAS",
   "COBERTURA I-MED SIN CONVENIO",
   "PRESTACIONES SIN BONIFICACION (S)",
@@ -75,10 +75,11 @@ const normalizeSelection = (value?: string) =>
         .filter(Boolean)
     : [];
 
+const previousYear = (period: string) => `${Number(period.slice(0, 4)) - 1}${period.slice(4)}`;
+
 const buildPeriodSeries = (rows: PremiumRow[], periods: string[]) => {
   const byPeriod = new Map<string, { premiumUf: number; spendUf: number }>();
   for (const row of rows) {
-    if (!periods.includes(row.period)) continue;
     const current = byPeriod.get(row.period) ?? { premiumUf: 0, spendUf: 0 };
     current.premiumUf += row.premiumUf;
     current.spendUf += row.spendUf;
@@ -88,6 +89,9 @@ const buildPeriodSeries = (rows: PremiumRow[], periods: string[]) => {
     period,
     premiumUf: byPeriod.get(period)?.premiumUf ?? 0,
     spendUf: byPeriod.get(period)?.spendUf ?? 0,
+    previousPeriod: previousYear(period),
+    previousLossRatio: (byPeriod.get(previousYear(period))?.premiumUf ?? 0) > 0
+      ? byPeriod.get(previousYear(period))!.spendUf / byPeriod.get(previousYear(period))!.premiumUf : null,
   }));
 };
 
@@ -152,17 +156,40 @@ export const buildGastosReport = (
     totals.set(row.descCober, (totals.get(row.descCober) ?? 0) + row.reembolsoUf);
   }
 
+  const periods = [...new Set(selectedPeriods.length ? selectedPeriods : filtered.map(row => row.period))].sort();
+  const previousPeriods = periods.map(previousYear);
+  const scope = expenses.filter(row => row.clientName === client && (!coverageSet.size || coverageSet.has(row.coverage)));
+  const availablePeriods = new Set(scope.map(row => row.period));
+  const missingPreviousPeriods = previousPeriods.filter(period => !availablePeriods.has(period));
+  const missingCurrentPeriods = periods.filter(period => !availablePeriods.has(period));
+  const comparisonComplete = periods.length > 0 && !missingPreviousPeriods.length && !missingCurrentPeriods.length;
+  const previousTotals = new Map<string, number>();
+  for (const row of scope) {
+    if (!previousPeriods.includes(row.period) || EXCLUDED_PRESTATIONS.has(row.descCober) || row.reembolsoUf <= 0) continue;
+    previousTotals.set(row.descCober, (previousTotals.get(row.descCober) ?? 0) + row.reembolsoUf);
+  }
   const totalUf = Array.from(totals.values()).reduce((sum, value) => sum + value, 0);
-  const rows: GastosDistributionRow[] = Array.from(totals.entries())
-    .map(([prestation, totalUfRow]) => ({
-      prestation,
-      totalUf: totalUfRow,
-      percent: totalUf > 0 ? (totalUfRow / totalUf) * 100 : 0,
-      percentCartera: CARTERA_PERCENT_BY_PRESTATION[prestation],
-    }))
+  const previousTotalUf = Array.from(previousTotals.values()).reduce((sum, value) => sum + value, 0);
+  const rows: GastosDistributionRow[] = Array.from(new Set([...totals.keys(), ...previousTotals.keys()]))
+    .map(prestation => {
+      const current = totals.get(prestation) ?? 0;
+      const previous = previousTotals.get(prestation) ?? 0;
+      const variationPercent = comparisonComplete && previous > 0 ? (current - previous) / previous * 100 : null;
+      const trend: GastosDistributionRow["trend"] = !comparisonComplete ? "unavailable" : previous === 0
+        ? (current > 0 ? "up" : "stable")
+        : current > previous * 1.02 + 1e-9 ? "up" : current < previous * 0.98 - 1e-9 ? "down" : "stable";
+      return {
+        prestation, totalUf: current,
+        percent: totalUf > 0 ? current / totalUf * 100 : 0,
+        percentCartera: CARTERA_PERCENT_BY_PRESTATION[prestation],
+        previousTotalUf: missingPreviousPeriods.length ? null : previous,
+        previousPercent: missingPreviousPeriods.length ? null : previousTotalUf > 0 ? previous / previousTotalUf * 100 : 0,
+        variationPercent, trend,
+      };
+    })
     .sort((a, b) => b.totalUf - a.totalUf);
 
-  const prestationOrder = rows.map((row) => row.prestation);
+  const prestationOrder = [...totals.keys()].sort((a, b) => totals.get(b)! - totals.get(a)!);
 
   const providerMap = new Map<string, TopProviderRow>();
   for (const row of filtered) {
@@ -246,6 +273,7 @@ export const buildGastosReport = (
   return {
     rows,
     totalUf,
+    comparison: { periods, previousPeriods, missingPreviousPeriods, missingCurrentPeriods, complete: comparisonComplete },
     prestationOrder,
     topProviders,
     topInsured,

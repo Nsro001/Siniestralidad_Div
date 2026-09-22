@@ -233,11 +233,45 @@ Metadata -> Read-only
 
 ## Próximos objetivos
 
-1. Validar visualmente el PDF con datos reales
-2. Extender la optimización A4 al resto de los reportes
+1. Activar usuarios y clientes en Supabase siguiendo SETUP_SUPABASE.md
+2. Validar el flujo real administrador → ejecutivo y el PDF después del despliegue
 3. Agregar nómina de asegurados
 4. Calcular tasa de utilización
 5. Siniestralidad per cápita
 6. Comparación período vigente vs período anterior
 7. Indicadores de frecuencia y severidad
 8. Dashboard de renovación
+
+## Sistema de usuarios y clientes (implementado localmente; activación pendiente)
+
+- Login por correo/contraseña con Supabase Auth; sin registro público en la interfaz.
+- Administrador: carga sábanas, crea ejecutivos y asigna clientes; puede activar/desactivar ejecutivos.
+- Ejecutivo: selecciona y consulta exclusivamente clientes asignados.
+- Todos pueden cambiar su propia contraseña.
+- Backend en Render: https://siniestralidad-div.onrender.com.
+- Supabase: https://kzgpjjsyetddludeqkwv.supabase.co.
+- Datos persistentes por cliente/tipo en PostgreSQL; autorización en backend y RLS en la base.
+- Cada carga sustituye la sábana del cliente/tipo incluido, conservando los demás clientes.
+- El reporte actual y sus cálculos se conservan.
+- La configuración local incluye solo URL y clave pública en archivos ignorados por Git.
+- Pendiente externo: ejecutar migración, desactivar registro público, crear primer administrador y configurar Render/Vercel antes de desplegar.
+- Instrucciones completas: SETUP_SUPABASE.md.
+
+Archivos añadidos relevantes:
+- frontend/src/AuthApp.tsx
+- frontend/src/components/Login.tsx
+- frontend/src/components/AdminAccounts.tsx
+- frontend/src/lib/supabase.ts
+- backend/src/app.ts
+- backend/src/supabase.ts
+- supabase/migrations/202609060001_accounts.sql
+- backend/tests/access.test.ts
+
+Endpoints añadidos:
+- GET /health (público, estado del proceso)
+- GET /me (sesión requerida)
+- GET /admin/users (administrador)
+- POST /admin/users (administrador, crea ejecutivo)
+- PUT /admin/users/:id (administrador, estado/nombre/asignaciones)
+
+Los endpoints existentes ahora requieren sesión; las cargas requieren administrador.

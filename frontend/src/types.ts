@@ -7,7 +7,7 @@ export type FiltersResponse = {
 export type PrimasReport = {
   series: Array<{
     coverage: string;
-    series: Array<{ period: string; premiumUf: number; spendUf: number }>;
+    series: Array<{ period: string; premiumUf: number; spendUf: number; previousPeriod?: string; previousLossRatio?: number | null }>;
   }>;
 };
 
@@ -18,7 +18,8 @@ export type ClaimantsReport = {
 };
 
 export type GastosReport = {
-  rows: Array<{ prestation: string; totalUf: number; percent: number; percentCartera?: number }>;
+  comparison?: { periods: string[]; previousPeriods: string[]; missingPreviousPeriods: string[]; missingCurrentPeriods: string[]; complete: boolean };
+  rows: Array<{ prestation: string; totalUf: number; percent: number; percentCartera?: number; previousTotalUf?: number | null; previousPercent?: number | null; variationPercent?: number | null; trend?: "up" | "down" | "stable" | "unavailable"; }>;
   prestationOrder: string[];
   topProviders: Array<{
     provider: string;
@@ -44,3 +45,26 @@ export type GastosReport = {
   }>;
   totalUf: number;
 };
+
+export type AccountProfile = {
+  id: string;
+  email: string;
+  full_name: string;
+  role: "admin" | "executive" | "manager";
+  portfolio_name?: string | null;
+  active: boolean;
+};
+export type AdminAccounts = {
+  users: AccountProfile[];
+  clients: Array<{ id: string; name: string; kam_name?: string | null; manager_name?: string | null }>;
+  assignments: Array<{ user_id: string; client_id: string }>;
+};
+
+export type PortfolioClient = {
+  id: string; name: string; kam: string; manager: string;
+  latestPeriod: string | null; monthlyPremiumUf: number | null; annualPremiumUf: number | null;
+  insured: Array<{ policy: string; coverage: string; holders: number | null; dependents: number | null }>;
+  holders: number | null; dependents: number | null; firstPeriod: string | null;
+  renewals: string[];
+};
+export type Portfolio = { clients: PortfolioClient[] };

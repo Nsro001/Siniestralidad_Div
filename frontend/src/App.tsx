@@ -6,7 +6,8 @@ import {
   fetchPrimasReport,
   uploadFile,
 } from "./api";
-import { ClaimantsReport, FiltersResponse, GastosReport, PrimasReport } from "./types";
+import { AccountProfile, ClaimantsReport, FiltersResponse, GastosReport, PrimasReport } from "./types";
+import ReportPresentation, { type ReportSlide } from "./components/ReportPresentation";
 import ExecutiveSummary from "./components/ExecutiveSummary";
 import GastosDistribution from "./components/GastosDistribution";
 import PrimasCharts from "./components/PrimasCharts";
@@ -64,12 +65,13 @@ const getCurrentValidity = (periods: string[]) => {
   return sorted.filter((period) => period >= start && period <= latest).slice(0, 12);
 };
 
-export default function App() {
+export default function App({ profile, initialClient = "" }: { profile: AccountProfile; initialClient?: string }) {
+  const [presenting, setPresenting] = useState(false);
   const [theme, setTheme] = useState("classic");
   const [premiumUploaded, setPremiumUploaded] = useState(false);
   const [claimsUploaded, setClaimsUploaded] = useState(false);
   const [filters, setFilters] = useState<FiltersResponse | null>(null);
-  const [selectedClient, setSelectedClient] = useState<string>("");
+  const [selectedClient, setSelectedClient] = useState<string>(initialClient);
   const [selectedCoverages, setSelectedCoverages] = useState<string[]>([]);
   const [selectedPeriods, setSelectedPeriods] = useState<string[]>([]);
   const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("vigencia");
@@ -86,7 +88,9 @@ export default function App() {
     topInsured: true,
   });
 
-  const readyForFilters = premiumUploaded && claimsUploaded;
+  const [dataVersion, setDataVersion] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const readyForFilters = filters !== null;
 
   useEffect(() => {
     if (theme === "classic") {
@@ -97,14 +101,20 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
-    if (!readyForFilters) return;
+    let cancelled = false;
     fetchFilters()
       .then((data) => {
+        if (cancelled) return;
         setFilters(data);
-        if (data.clients?.length) setSelectedClient(data.clients[0]);
+        setSelectedClient(current => data.clients.includes(current) ? current : data.clients[0] ?? "");
       })
-      .catch((err) => setError(err instanceof Error ? err.message : "Error al cargar filtros."));
-  }, [readyForFilters]);
+      .catch((err) => {
+        if (cancelled) return;
+        setFilters(null); setSelectedClient("");
+        setError(err instanceof Error ? err.message : "Error al cargar filtros.");
+      });
+    return () => { cancelled = true; };
+  }, [dataVersion]);
 
   useEffect(() => {
     if (!filters || !selectedClient) return;
@@ -129,6 +139,8 @@ export default function App() {
       periods: selectedPeriods.join(","),
     };
 
+    let cancelled = false;
+    setPrimasReport(null); setGastosReport(null); setClaimantsReport(null);
     setError(null);
     Promise.all([
       fetchPrimasReport(params),
@@ -136,12 +148,14 @@ export default function App() {
       fetchClaimantsReport(params),
     ])
       .then(([primas, gastos, claimants]) => {
+        if (cancelled) return;
         setPrimasReport(primas);
         setGastosReport(gastos);
         setClaimantsReport(claimants);
       })
-      .catch((err) => setError(err instanceof Error ? err.message : "Error al generar los reportes."));
-  }, [selectedClient, selectedCoverages, selectedPeriods]);
+      .catch((err) => { if (!cancelled) setError(err instanceof Error ? err.message : "Error al generar los reportes."); });
+    return () => { cancelled = true; };
+  }, [selectedClient, selectedCoverages, selectedPeriods, dataVersion]);
 
   const availableCoverages = useMemo(
     () => (filters && selectedClient ? filters.coveragesByClient[selectedClient] ?? [] : []),
@@ -154,7 +168,7 @@ export default function App() {
   );
 
   const handleUpload = async (endpoint: "/upload/primas" | "/upload/gastos", file: File) => {
-    setError(null);
+    setError(null); setUploading(true);
     try {
       const response = await uploadFile(endpoint, file);
       if (response.status !== "ok") {
@@ -163,9 +177,10 @@ export default function App() {
       }
       if (endpoint === "/upload/primas") setPremiumUploaded(true);
       else setClaimsUploaded(true);
+      setDataVersion(value => value + 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al cargar archivo.");
-    }
+    } finally { setUploading(false); }
   };
 
   const applyPeriodPreset = (preset: Exclude<PeriodPreset, "custom">) => {
@@ -178,6 +193,21 @@ export default function App() {
   const toggleReportVisibility = (key: keyof typeof visibleReports) => {
     setVisibleReports((prev) => ({ ...prev, [key]: !prev[key] }));
   };
+
+  const slides: ReportSlide[] = [];
+  if (primasReport) {
+    slides.push({ id: "summary", title: "Resumen ejecutivo", content: <ExecutiveSummary report={primasReport} claimants={claimantsReport} periods={selectedPeriods} /> });
+    if (visibleReports.primas) primasReport.series.forEach(coverage => {
+      slides.push({ id: `premium-${coverage.coverage}`, title: `Siniestralidad · ${coverage.coverage}`, content: <PrimasCharts client={selectedClient} report={{ series: [coverage] }} /> });
+    });
+  }
+  if (gastosReport) {
+    if (visibleReports.gastosDistribution) slides.push({ id: "distribution", title: "Distribución de prestaciones", content: <GastosDistribution report={gastosReport} /> });
+    if (visibleReports.systemHealth) slides.push({ id: "health", title: "Salud del sistema", content: <SystemHealthReport report={gastosReport} /> });
+    if (visibleReports.healthByPrestation) slides.push({ id: "prestations", title: "Salud por prestación", content: <HealthByPrestationReport report={gastosReport} /> });
+    if (visibleReports.topProviders) slides.push({ id: "providers", title: "Top prestadores", content: <TopProvidersTable report={gastosReport} /> });
+    if (visibleReports.topInsured) slides.push({ id: "insured", title: "Top asegurados", content: <TopInsuredTable report={gastosReport} /> });
+  }
 
   const presetButtonClass = (preset: PeriodPreset) =>
     `rounded-full border px-4 py-2 text-xs font-semibold transition ${
@@ -214,36 +244,46 @@ export default function App() {
         </div>
       </header>
 
+      {profile.role === "admin" && <>
+      <p className="no-print mb-4 text-sm text-ink/70">Las cargas actualizan las sábanas de los clientes incluidos en el archivo y conservan los demás clientes. Máximo 10 MB por archivo.</p>
       <section className="no-print grid gap-6 md:grid-cols-2">
         <div className="glass-panel rounded-3xl p-6 shadow-soft-xl">
           <h2 className="font-display text-xl">Sábana de Primas</h2>
           <input
             type="file"
+            disabled={uploading}
             accept=".xls,.xlsx"
             onChange={(event) => {
               const file = event.target.files?.[0];
+              event.target.value = "";
               if (file) handleUpload("/upload/primas", file);
             }}
             className="mt-4 block w-full text-sm text-ink/70 file:mr-4 file:rounded-full file:border-0 file:bg-ink file:px-4 file:py-2 file:text-xs file:font-semibold file:uppercase file:text-sand"
           />
-          <p className="mt-3 text-xs text-ink/70">Estado: {premiumUploaded ? "OK" : "Pendiente"}</p>
+          <p className="mt-3 text-xs text-ink/70">Carga en esta sesión: {premiumUploaded ? "Completada" : "Sin cargas nuevas"}</p>
         </div>
         <div className="glass-panel rounded-3xl p-6 shadow-soft-xl">
           <h2 className="font-display text-xl">Sábana de Gastos</h2>
           <input
             type="file"
+            disabled={uploading}
             accept=".xls,.xlsx"
             onChange={(event) => {
               const file = event.target.files?.[0];
+              event.target.value = "";
               if (file) handleUpload("/upload/gastos", file);
             }}
             className="mt-4 block w-full text-sm text-ink/70 file:mr-4 file:rounded-full file:border-0 file:bg-ink file:px-4 file:py-2 file:text-xs file:font-semibold file:uppercase file:text-sand"
           />
-          <p className="mt-3 text-xs text-ink/70">Estado: {claimsUploaded ? "OK" : "Pendiente"}</p>
+          <p className="mt-3 text-xs text-ink/70">Carga en esta sesión: {claimsUploaded ? "Completada" : "Sin cargas nuevas"}</p>
         </div>
       </section>
+      {uploading && <p className="no-print mt-3" role="status">Procesando y guardando sábana…</p>}
+      </>}
 
       <section className="no-print mt-8 glass-panel rounded-3xl p-6 shadow-soft-xl">
+        {filters?.clients.length === 0 && <p className="mb-4 text-sm" role="status">{profile.role === "admin" ? "Carga las sábanas para registrar los primeros clientes." : "Todavía no tienes clientes asignados. Contacta al administrador."}</p>}
+        <button className="mb-4 text-sm underline" onClick={() => setDataVersion(value => value + 1)}>Actualizar clientes y datos</button>
         <div className="grid gap-6 md:grid-cols-3">
           <div>
             <label className="text-sm font-semibold">Nombre Cliente</label>
@@ -303,6 +343,13 @@ export default function App() {
         {error && <p className="mt-4 text-sm text-ember">{error}</p>}
       </section>
 
+      <section className="no-print account-ui report-view-controls mt-8" aria-label="Vista del reporte">
+        <div><h2 className="font-display text-xl">Presentar al cliente</h2><p className="account-muted text-sm">Selecciona las tarjetas con Mostrar. La presentación respeta esa selección y separa cada cobertura.</p></div>
+        <button className="account-secondary" onClick={() => setVisibleReports({ primas: true, gastosDistribution: true, systemHealth: true, healthByPrestation: true, topProviders: true, topInsured: true })}>Mostrar todas</button>
+        <button className="account-primary" disabled={!slides.length || !!error || uploading} onClick={() => setPresenting(true)}>Modo presentación</button>
+      </section>
+      {presenting && slides.length > 0 && <ReportPresentation slides={slides} client={selectedClient} periods={selectedPeriods} onClose={() => setPresenting(false)} />}
+
       <div id="report-root" className="mt-10 space-y-10">
         <div className="print-only mb-6">
           <p className="text-sm uppercase tracking-[0.3em] text-moss">Informe de Siniestralidad</p>
@@ -323,7 +370,7 @@ export default function App() {
             checked={visibleReports.primas}
             onToggle={() => toggleReportVisibility("primas")}
           >
-            <PrimasCharts report={primasReport} />
+            <PrimasCharts client={selectedClient} report={primasReport} />
           </ReportToggleSection>
         )}
         {gastosReport && (

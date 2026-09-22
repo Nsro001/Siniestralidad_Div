@@ -28,3 +28,22 @@
 - Titulares y cargas en tabla de dos columnas, centrada y de ancho compacto.
 - Tabla financiera conservada.
 - El despliegue anterior no se activó: el push requiere autenticación de GitHub en el equipo.
+
+## 2026-09-05 — Sistema de usuarios y asignación de clientes
+- Login y cierre de sesión con Supabase Auth; cambio de contraseña desde la cuenta.
+- Administración de ejecutivos: creación, nombre, activación/desactivación y asignación de varios clientes.
+- Backend con verificación de sesión y roles en cada solicitud; filtros y reportes restringidos por cliente mediante RLS.
+- Sábanas persistentes en PostgreSQL por cliente/tipo, sin modificar los cálculos ni el resumen PDF.
+- El dashboard recupera clientes guardados al entrar y descarta respuestas obsoletas al cambiar los filtros.
+- Migración SQL, ejemplos de configuración y guía SETUP_SUPABASE.md para Supabase, Render y Vercel.
+- Pruebas locales de permisos PostgreSQL y acceso HTTP aprobadas; builds y TypeScript aprobados.
+- Prueba de navegador con servicios simulados aprobada: login, creación/asignación de ejecutivo, logout, cambio de contraseña, desactivación, reporte/PDF y vista móvil.
+- Se verificó que Supabase acepta la clave pública; la tabla profiles aún no existe y el registro público sigue habilitado.
+- Pendiente: aplicar la migración y configuración en servicios, crear el primer administrador y verificar con cuentas reales antes de publicar.
+
+## 2026-09-22 — Comparación anual del reporte
+- Siniestralidad mensual: línea del mismo mes del año anterior, intervalos identificados y detalle del mes comparado en el tooltip. Sin prima válida no se grafica un porcentaje cero.
+- Distribución: UF y participación del período anterior, variación relativa del gasto UF y flechas para cambios estrictamente mayores a ±2 %. Entre ambos límites se muestra un guion; sin historia suficiente no se calcula variación.
+- Tabla comparativa a todo el ancho y sin límite de altura al imprimir; disponible también en la presentación.
+- Validación: compilación backend/frontend y TypeScript correctos; pruebas de comparación, detalle mensual y cartera aprobadas. Las sábanas corregidas permiten comparar nov. 2024–oct. 2025 con nov. 2023–oct. 2024 para los tres clientes.
+- Cambios locales; carga de sábanas y despliegue pendientes.
