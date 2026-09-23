@@ -10,12 +10,38 @@ export default function PortfolioDashboard({ profile, onOpenClient }: { profile:
   const [kam, setKam] = useState("");
   const [search, setSearch] = useState("");
   const [reload, setReload] = useState(0);
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   useEffect(() => {
     let cancelled = false;
+    let pending = false;
     setData(null); setError("");
-    fetchPortfolio().then(result => { if (!cancelled) setData(result); })
-      .catch(err => { if (!cancelled) setError(err instanceof Error ? err.message : "No se pudo cargar la cartera."); });
-    return () => { cancelled = true; };
+    setUpdatedAt(null);
+    const refresh = async () => {
+      if (pending || document.visibilityState === "hidden") return;
+      pending = true;
+      try {
+        const result = await fetchPortfolio();
+        if (!cancelled) {
+          setData(result); setError(""); setUpdatedAt(new Date());
+          setKam(current => result.clients.some(client => client.kam === current) ? current : "");
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setData(null); setUpdatedAt(null);
+          setError(err instanceof Error ? err.message : "No se pudo cargar la cartera.");
+        }
+      } finally { pending = false; }
+    };
+    void refresh();
+    const interval = window.setInterval(refresh, 60000);
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
   }, [reload, profile.id]);
   const clients = (data?.clients ?? []).filter(c => (!kam || c.kam === kam) && c.name.toLocaleLowerCase().includes(search.toLocaleLowerCase()));
   const kams = [...new Set(data?.clients.map(c => c.kam) ?? [])].sort();
@@ -32,6 +58,7 @@ export default function PortfolioDashboard({ profile, onOpenClient }: { profile:
         <p className="account-muted mt-3">Clientes, primas y próximas renovaciones en un solo lugar.</p></div>
       <button className="account-secondary" onClick={() => setReload(value => value + 1)}>Actualizar</button>
     </div>
+    {updatedAt && <p className="account-muted text-sm mt-3">Última consulta: {updatedAt.toLocaleTimeString("es-CL")} · Actualización automática cada minuto.</p>}
     {error ? <p role="alert" className="account-error mt-4">{error}</p> : !data ? <p role="status" className="mt-6">Cargando cartera…</p> : <>
       <div className="portfolio-filters account-form mt-6">
         {profile.role !== "executive" && <label>KAM<select value={kam} onChange={e => setKam(e.target.value)}><option value="">Todos los KAM</option>{kams.map(name => <option key={name}>{name}</option>)}</select></label>}
@@ -49,7 +76,7 @@ export default function PortfolioDashboard({ profile, onOpenClient }: { profile:
       </section>
       <section className="glass-panel account-card mt-6">
         <h2 className="font-display text-xl">Clientes de la cartera</h2>
-        <p className="account-muted text-sm mt-2">Prima mensual: suma de coberturas del último período disponible. Titulares y cargas: solo Salud del último mes disponible.</p>
+        <p className="account-muted text-sm mt-2">Clientes con primas cargadas. Prima mensual: suma de coberturas del último período disponible. Titulares y cargas: solo Salud del último mes disponible.</p>
         {!clients.length ? <p className="mt-6">{data.clients.length ? "No hay clientes para estos filtros." : "Todavía no tienes clientes en tu cartera. El administrador debe cargar las primas y vincular las cuentas a sus KAM o jefes."}</p> : <div className="portfolio-table mt-4"><table><thead><tr><th>Cliente / KAM</th><th>Último mes</th><th>Prima mensual</th><th>Prima anual estimada</th><th>Titulares / cargas · Salud</th></tr></thead><tbody>
           {clients.map(client => <tr key={client.id}><td><button className="portfolio-link" onClick={() => onOpenClient(client.name)}>{client.name}</button><p className="account-muted text-sm">{client.kam} · Jefe: {client.manager}</p></td><td>{month(client.latestPeriod)}</td><td>{uf(client.monthlyPremiumUf)}</td><td><strong>{uf(client.annualPremiumUf)}</strong></td><td><strong>{client.holders ?? "—"} / {client.dependents ?? "—"}</strong><details className="mt-2"><summary>Detalle Salud</summary>{client.insured.length ? client.insured.map((group, index) => <div className="portfolio-insured" key={index}><span>{group.coverage} · Póliza {group.policy}</span><strong>{group.holders ?? "—"} / {group.dependents ?? "—"}</strong></div>) : "Sin datos"}</details></td></tr>)}
         </tbody></table></div>}

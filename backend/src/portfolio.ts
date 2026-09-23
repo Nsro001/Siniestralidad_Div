@@ -33,7 +33,7 @@ export async function getPortfolio(db: SupabaseClient) {
     for (const dataset of data ?? []) datasets.set(dataset.client_id, dataset.rows as PremiumRow[]);
     if (!data || data.length < 100) break;
   }
-  return { clients: clients.map(client => summarizeClient({ id: client.id, name: client.name,
+  return { clients: clients.filter(client => (datasets.get(client.id)?.length ?? 0) > 0).map(client => summarizeClient({ id: client.id, name: client.name,
     kam_name: client.kam_name, manager_name: client.manager_name }, datasets.get(client.id) ?? []))
     .sort((a, b) => a.name.localeCompare(b.name, "es")) };
 }

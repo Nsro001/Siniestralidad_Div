@@ -2,7 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import xlsx from "xlsx";
 import { parsePremiums } from "../src/parser.js";
-import { summarizeClient } from "../src/portfolio.js";
+import { getPortfolio, summarizeClient } from "../src/portfolio.js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 function workbook(rows: Record<string, unknown>[]) {
   const book = xlsx.utils.book_new();
@@ -12,6 +13,37 @@ function workbook(rows: Record<string, unknown>[]) {
 const source = { "Nombe Cliente": "Cliente A", "Rut Cliente": 1234, "Póliza": 123,
   "Periodo": Date.UTC(2025, 9, 1) / 86400000 + 25569, "Cobertura": "Salud", "Prima UF": 100, "Gasto UF": 70,
   "N.º titulares": 10, "N.º carga": 20, "KAM": "Ana", "Jefe": "Juan" };
+
+test("cartera: cada consulta refleja las primas reemplazadas y excluye clientes sin primas", async () => {
+  const clients = [{ id: "a", name: "Cliente A" }, { id: "b", name: "Cliente B" }];
+  const rows = parsePremiums(workbook([source]));
+  let datasets = [{ client_id: "a", kind: "primas", rows }];
+  const db = { from(table: string) {
+    let kind: string | undefined;
+    const query = {
+      select() { return query; },
+      eq(column: string, value: string) { assert.equal(column, "kind"); kind = value; return query; },
+      order() { return query; },
+      async range(start: number, end: number) {
+        const data = table === "clients" ? clients : datasets.filter(dataset => dataset.kind === kind);
+        return { data: data.slice(start, end + 1), error: null };
+      },
+    };
+    return query;
+  } } as unknown as SupabaseClient;
+  const before = await getPortfolio(db);
+  assert.deepEqual(before.clients.map(client => client.id), ["a"]);
+  assert.equal(before.clients[0].monthlyPremiumUf, 100);
+  datasets = [{ client_id: "b", kind: "primas", rows: [{ ...rows[0], clientName: "Cliente B",
+    period: "2026-09", premiumUf: 250, holders: 30, dependents: 40 }] }];
+  const after = await getPortfolio(db);
+  assert.deepEqual(after.clients.map(client => client.id), ["b"]);
+  assert.equal(after.clients[0].latestPeriod, "2026-09");
+  assert.equal(after.clients[0].monthlyPremiumUf, 250);
+  assert.equal(after.clients[0].annualPremiumUf, 3000);
+  assert.equal(after.clients[0].holders, 30);
+  assert.equal(after.clients[0].dependents, 40);
+});
 
 test("Excel: conserva KAM, jefe, póliza y asegurados; distingue cero de dato ausente", () => {
   const rows = parsePremiums(workbook([source, { ...source, "N.º titulares": 0, "N.º carga": "" }]));
