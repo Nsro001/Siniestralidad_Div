@@ -183,3 +183,17 @@ incluidos negativos. El análisis de prestaciones usa reembolsos positivos y las
 mismas exclusiones que Distribución de prestaciones; muestra el importe neto que
 queda fuera. Una diferencia entre las sábanas impide atribuir todo el pico del
 gráfico a las prestaciones del detalle.
+
+### Reemplazo completo de sábanas (23 de septiembre de 2026)
+
+Ejecutar `supabase/migrations/202609230001_replace_dataset.sql` después de las migraciones de cuentas y cartera, antes de desplegar esta versión. Luego reiniciar/desplegar backend y frontend.
+
+En Reportes, el tipo de carga «Reemplazar la sábana completa» sustituye todos los datos del tipo seleccionado (primas o gastos). Los clientes ausentes del nuevo archivo dejan de tener datos de ese tipo. Cargar ambos Excel para renovar ambas sábanas. La opción «Actualizar solo los clientes del archivo» conserva la modalidad parcial anterior. El reemplazo valida el archivo y se ejecuta en una transacción; conserva las identidades de clientes y sus asignaciones.
+
+Inicio muestra únicamente clientes con primas cargadas; los clientes con solo gastos siguen disponibles en los filtros de reportes. Para retirar datos antiguos como POOL TRIPAN, volver a cargar los Excel vigentes con reemplazo completo. No se renombran ni se fusionan clientes por similitud de nombres.
+
+### Lectura de Excel y conexión local
+
+El lector limita la conversión al rango de celdas con valores para evitar recorrer filas vacías con formato hasta el final de Excel. Los gastos utilizan el encabezado `Reembolso` (columna W en la sábana actual).
+
+En desarrollo, la interfaz llama a `/api` y Vite redirige al backend indicado en `VITE_API_URL` (por defecto `http://localhost:4000`). Deben ejecutarse ambos servicios: `npm run dev` en `backend` y en `frontend`. En producción se sigue usando `VITE_API_URL` directamente y `FRONTEND_ORIGIN` debe coincidir con el origen de la interfaz.

@@ -39,6 +39,12 @@ export default function PrimasCharts({ report, client }: Props) {
         }));
         const previousPeriods = coverage.series.flatMap(row => row.previousPeriod ? [row.previousPeriod] : []);
         const missingPrevious = coverage.series.filter(row => row.previousLossRatio == null);
+        const selectPeriod = (period: unknown) => {
+          if (typeof period === "string" && coverage.series.some(row => row.period === period)) {
+            setSelected({ coverage: coverage.coverage, period });
+          }
+        };
+        const selectBar = (data: { payload?: { period?: string }; period?: string }) => selectPeriod(data.payload?.period ?? data.period);
         return (
           <div key={coverage.coverage} className="glass-panel rounded-3xl p-6 shadow-soft-xl">
           <h2 className="font-display text-xl">Siniestralidad - {coverage.coverage}</h2>
@@ -48,8 +54,7 @@ export default function PrimasCharts({ report, client }: Props) {
             <div className="mt-4 h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={seriesWithRatio} onClick={state => {
-                  const period = state?.activeLabel;
-                  if (typeof period === "string" && coverage.series.some(row => row.period === period)) setSelected({ coverage: coverage.coverage, period });
+                  selectPeriod(state?.activePayload?.[0]?.payload?.period ?? state?.activeLabel);
                 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e0d7" />
                   <XAxis dataKey="period" tick={{ fontSize: 10 }} />
@@ -65,19 +70,21 @@ export default function PrimasCharts({ report, client }: Props) {
                       const row = coverage.series.find(item => item.period === String(label));
                       return `${formatReportMonth(String(label))}${row?.previousPeriod ? ` · Anterior: ${formatReportMonth(row.previousPeriod)}` : ""}`;
                     }}
-                    formatter={(value: number, name: string) =>
-                      name.startsWith("% Siniestralidad") ? `${(value * 100).toFixed(1)}%` : value.toFixed(2)
+                    formatter={(value, name) =>
+                      typeof value !== "number" ? "Sin datos" : String(name).startsWith("% Siniestralidad") ? `${(value * 100).toFixed(1)}%` : value.toFixed(2)
                     }
                   />
                   <Legend />
                   <Line yAxisId="right" dataKey="previousLossRatio" name="% Siniestralidad año anterior"
-                    stroke="#7c3aed" strokeWidth={2} strokeDasharray="6 4" dot={{ r: 3 }} connectNulls={false} />
+                    stroke="#7c3aed" strokeWidth={2} strokeDasharray="6 4" dot={{ r: 3 }} activeDot={(point: { cx?: number; cy?: number; stroke?: string; payload?: { period?: string } }) => <circle cx={point.cx} cy={point.cy} r={6} fill={point.stroke} cursor="pointer" onClick={event => { event.stopPropagation(); selectPeriod(point.payload?.period); }} />} connectNulls={false} />
                   <Bar
                     yAxisId="left"
                     dataKey="premiumUf"
                     name="Prima UF"
                     fill="var(--chart-1)"
                     radius={[4, 4, 0, 0]}
+                    onClick={selectBar}
+                    cursor="pointer"
                   />
                   <Bar
                     yAxisId="left"
@@ -85,6 +92,8 @@ export default function PrimasCharts({ report, client }: Props) {
                     name="Gasto UF"
                     fill="var(--chart-2)"
                     radius={[4, 4, 0, 0]}
+                    onClick={selectBar}
+                    cursor="pointer"
                   />
                   <Line
                     yAxisId="right"
@@ -93,7 +102,7 @@ export default function PrimasCharts({ report, client }: Props) {
                     stroke="var(--text)"
                     strokeWidth={2}
                     dot={{ r: 3 }}
-                    activeDot={{ r: 6 }}
+                    activeDot={(point: { cx?: number; cy?: number; stroke?: string; payload?: { period?: string } }) => <circle cx={point.cx} cy={point.cy} r={6} fill={point.stroke} cursor="pointer" onClick={event => { event.stopPropagation(); selectPeriod(point.payload?.period); }} />}
                   >
                     <LabelList
                       dataKey="lossRatio"

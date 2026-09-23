@@ -10,7 +10,8 @@ export default function MonthlyDetailPanel({ client, coverage, period, onClose }
   const panel = useRef<HTMLElement>(null);
   useEffect(() => {
     let cancelled = false;
-    setData(null); setError(""); panel.current?.focus();
+    setData(null); setError(""); panel.current?.focus({ preventScroll: true });
+    panel.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     fetchMonthlyDetail({ client, coverage, period }).then(value => { if (!cancelled) setData(value); })
       .catch(err => { if (!cancelled) setError(err instanceof Error ? err.message : "No se pudo cargar el detalle."); });
     return () => { cancelled = true; };

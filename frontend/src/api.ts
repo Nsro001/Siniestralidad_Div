@@ -1,7 +1,7 @@
 import { supabase } from "./lib/supabase";
 import type { AccountProfile, AdminAccounts, FiltersResponse, Portfolio } from "./types";
 
-const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/$/, "") || "http://localhost:4000";
+const API_BASE = import.meta.env.DEV ? "/api" : import.meta.env.VITE_API_URL?.replace(/\/$/, "") || "http://localhost:4000";
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
@@ -19,9 +19,10 @@ async function request(path: string, init: RequestInit = {}) {
   }
   return body;
 }
-export const uploadFile = async (endpoint: string, file: File) => {
+export const uploadFile = async (endpoint: string, file: File, mode: "replace" | "merge" = "merge") => {
   const form = new FormData();
   form.append("file", file);
+  form.append("mode", mode);
   return request(endpoint, { method: "POST", body: form });
 };
 export const fetchFilters = (): Promise<FiltersResponse> => request("/filters");

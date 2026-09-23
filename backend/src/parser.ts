@@ -14,6 +14,17 @@ const parseWorkbook = (buffer: Buffer) => {
   const sheetName = workbook.SheetNames[0];
   if (!sheetName) throw new Error("No se encontro hoja en el archivo.");
   const sheet = workbook.Sheets[sheetName];
+  // Excel puede declarar filas vacías con formato hasta el final de la hoja.
+  // Recorrer únicamente el rango que contiene valores reales.
+  let lastRow = 0;
+  let lastColumn = 0;
+  for (const address of Object.keys(sheet)) {
+    if (address.startsWith("!") || sheet[address]?.v == null) continue;
+    const cell = xlsx.utils.decode_cell(address);
+    lastRow = Math.max(lastRow, cell.r);
+    lastColumn = Math.max(lastColumn, cell.c);
+  }
+  sheet["!ref"] = xlsx.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: lastRow, c: lastColumn } });
   const rows = xlsx.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "", raw: true });
   if (rows.length === 0) throw new Error("Hoja sin datos.");
   return rows;

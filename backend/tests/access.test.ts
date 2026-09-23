@@ -25,6 +25,7 @@ test("RLS: asignaciones, cuentas desactivadas, escalamiento e importaciones ató
     `);
     await db.exec(await readFile(new URL("../../supabase/migrations/202609060001_accounts.sql", import.meta.url), "utf8"));
     await db.exec(await readFile(new URL("../../supabase/migrations/202609170001_portfolio.sql", import.meta.url), "utf8"));
+    await db.exec(await readFile(new URL("../../supabase/migrations/202609230001_replace_dataset.sql", import.meta.url), "utf8"));
     await db.query("insert into auth.users values ($1, 'admin@example.test', '{}'), ($2, 'exec@example.test', '{}'), ($3, 'other@example.test', '{\"role\":\"admin\"}')", [admin, executive, other]);
     await db.query("update public.profiles set role = 'admin' where id = $1", [admin]);
     const asUser = async (id: string) => {
@@ -92,6 +93,19 @@ test("RLS: asignaciones, cuentas desactivadas, escalamiento e importaciones ató
     await db.query("select public.manage_portfolio_account($1, 'Jefe', false, '{}'::uuid[], 'manager', 'Jefe Dos')", [other]);
     await asUser(other);
     assert.equal((await db.query("select * from public.clients")).rows.length, 0, "jefe inactivo no accede");
+    await assert.rejects(db.query("select public.replace_client_dataset('primas', $1::jsonb)", [JSON.stringify([a])]), /Administrador requerido/);
+    await asUser(admin);
+    const replace = (rows: unknown[]) => db.query("select public.replace_client_dataset('primas', $1::jsonb)", [JSON.stringify(rows)]);
+    await assert.rejects(replace([]), /no contiene filas/);
+    await assert.rejects(replace([{ ...a, period: "inválido" }]), /Filas sin/);
+    assert.equal((await db.query("select * from public.client_datasets where kind='primas'")).rows.length, 2);
+    await replace([{ ...a, premiumUf: 321, kam: "KAM Nuevo" }]);
+    assert.equal((await db.query("select * from public.client_datasets where kind='primas'")).rows.length, 1);
+    assert.equal((await db.query("select * from public.client_datasets where kind='gastos'")).rows.length, 1, "reemplazar primas conserva gastos");
+    assert.equal((await db.query("select * from public.clients")).rows.length, 2, "conserva identidades");
+    assert.deepEqual((await db.query("select kam_name, manager_name from public.clients where id=$1", [bId])).rows, [{ kam_name: null, manager_name: null }]);
+    await upload([b]);
+    assert.equal((await db.query("select * from public.client_datasets where kind='primas'")).rows.length, 2, "la modalidad parcial sigue disponible");
     await db.exec("reset role; set role anon");
     await assert.rejects(db.query("select * from public.client_datasets"), /permission denied/);
     await assert.rejects(db.query("select public.import_client_dataset('primas', '[]')"), /permission denied/);

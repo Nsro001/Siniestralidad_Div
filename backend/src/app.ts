@@ -39,7 +39,7 @@ export function createApp(verifySession = authenticate) {
     if (!file) return res.status(400).json({ error: "Archivo de primas requerido." });
     try {
       const rows = parsePremiums(file.buffer);
-      await saveRows(res.locals.auth.db, "primas", rows);
+      await saveRows(res.locals.auth.db, "primas", rows, req.body?.mode === "replace");
       return res.json({ status: "ok", rows: rows.length });
     } catch (error) {
       if (error instanceof HttpError) throw error;
@@ -52,7 +52,7 @@ export function createApp(verifySession = authenticate) {
     if (!file) return res.status(400).json({ error: "Archivo de gastos requerido." });
     try {
       const rows = parseExpenses(file.buffer);
-      await saveRows(res.locals.auth.db, "gastos", rows);
+      await saveRows(res.locals.auth.db, "gastos", rows, req.body?.mode === "replace");
       return res.json({ status: "ok", rows: rows.length });
     } catch (error) {
       if (error instanceof HttpError) throw error;
