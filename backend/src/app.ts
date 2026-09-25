@@ -3,7 +3,7 @@ import { buildMonthlyDetail } from "./monthly.js";
 import { getPortfolio } from "./portfolio.js";
 import express, { type RequestHandler, type ErrorRequestHandler } from "express";
 import multer from "multer";
-import { parseExpenses, parsePremiums } from "./parser.js";
+import { parseUpload } from "./parser.js";
 import { buildGastosReport, buildPrimasReport } from "./report.js";
 import { getClient, getRows, getFilters, saveRows } from "./storage.js";
 import { authenticate, adminAuthClient, allRows, databaseError, HttpError, requireAdmin } from "./supabase.js";
@@ -38,7 +38,7 @@ export function createApp(verifySession = authenticate) {
     const file = req.file;
     if (!file) return res.status(400).json({ error: "Archivo de primas requerido." });
     try {
-      const rows = parsePremiums(file.buffer);
+      const rows = await parseUpload(file.buffer, "primas");
       await saveRows(res.locals.auth.db, "primas", rows, req.body?.mode === "replace");
       return res.json({ status: "ok", rows: rows.length });
     } catch (error) {
@@ -51,7 +51,7 @@ export function createApp(verifySession = authenticate) {
     const file = req.file;
     if (!file) return res.status(400).json({ error: "Archivo de gastos requerido." });
     try {
-      const rows = parseExpenses(file.buffer);
+      const rows = await parseUpload(file.buffer, "gastos");
       await saveRows(res.locals.auth.db, "gastos", rows, req.body?.mode === "replace");
       return res.json({ status: "ok", rows: rows.length });
     } catch (error) {

@@ -13,6 +13,7 @@ export default function AuthApp() {
   const [initializing, setInitializing] = useState(true);
   const [profile, setProfile] = useState<AccountProfile | null>(null);
   const [issue, setIssue] = useState("");
+  const [retry, setRetry] = useState(0);
   const [view, setView] = useState<"dashboard" | "reports" | "admin" | "password">("dashboard");
   const [reportClient, setReportClient] = useState("");
   const [password, setPassword] = useState("");
@@ -42,7 +43,7 @@ export default function AuthApp() {
     const expired = () => { setProfile(null); setIssue("La sesión expiró. Sal y vuelve a ingresar."); };
     window.addEventListener("session-expired", expired);
     return () => { cancelled = true; clearInterval(interval); window.removeEventListener("focus", refresh); window.removeEventListener("session-expired", expired); };
-  }, [session?.user.id, session?.access_token]);
+  }, [session?.user.id, session?.access_token, retry]);
   async function logout() {
     setProfile(null);
     const { error } = await supabase!.auth.signOut({ scope: "local" });
@@ -63,6 +64,7 @@ export default function AuthApp() {
   if (!session) return <Login />;
   if (!profile || profile.id !== session.user.id) return <main className="account-ui login-page"><section className="glass-panel login-card">
     <p role={issue ? "alert" : "status"}>{issue || "Verificando tu cuenta…"}</p>
+    {issue && <button className="account-primary mt-4" onClick={() => { setIssue(""); setRetry(value => value + 1); }}>Reintentar conexión</button>}
     <button className="account-secondary mt-4" onClick={logout}>Salir</button>
   </section></main>;
   return <>

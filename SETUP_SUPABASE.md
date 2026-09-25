@@ -194,6 +194,8 @@ Inicio muestra únicamente clientes con primas cargadas; los clientes con solo g
 
 ### Lectura de Excel y conexión local
 
-El lector limita la conversión al rango de celdas con valores para evitar recorrer filas vacías con formato hasta el final de Excel. Los gastos utilizan el encabezado `Reembolso` (columna W en la sábana actual).
+Las cargas XLSX se leen con ExcelJS en streaming y se transforman en bloques de 250 filas, sin materializar todas las celdas del libro. Solo se importan los datos de la primera hoja. XLS mantiene el lector anterior, que limita la conversión al rango de celdas con valores. Los gastos utilizan el encabezado `Reembolso` (columna W en la sábana actual).
+
+Si al cargar aparece «Failed to fetch» en la pantalla de verificación de cuenta, revisar los registros y la memoria del backend en Render a la hora de la carga. La comprobación `/me` se ejecuta también cada minuto y al recuperar el foco; una caída del backend durante la importación puede hacer fallar esa comprobación. Una respuesta correcta de `/health` después del incidente no descarta un reinicio. Desplegar el backend con `npm ci && npm run build` para incluir el lector en streaming. Antes de repetir una carga cuya respuesta se perdió, comprobar si los datos llegaron a guardarse.
 
 En desarrollo, la interfaz llama a `/api` y Vite redirige al backend indicado en `VITE_API_URL` (por defecto `http://localhost:4000`). Deben ejecutarse ambos servicios: `npm run dev` en `backend` y en `frontend`. En producción se sigue usando `VITE_API_URL` directamente y `FRONTEND_ORIGIN` debe coincidir con el origen de la interfaz.

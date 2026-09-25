@@ -1,4 +1,6 @@
 import xlsx from "xlsx";
+import ExcelJS from "exceljs";
+import { Readable } from "node:stream";
 import { ExpenseRow, PremiumRow } from "./types.js";
 
 const normalizeKey = (value: string) =>
@@ -86,8 +88,9 @@ const coverageFromPlan = (raw: unknown) => {
   return "Salud";
 };
 
-export const parsePremiums = (buffer: Buffer): PremiumRow[] => {
-  const rows = parseWorkbook(buffer);
+export const parsePremiums = (buffer: Buffer): PremiumRow[] => parsePremiumRows(parseWorkbook(buffer));
+
+const parsePremiumRows = (rows: Record<string, unknown>[]): PremiumRow[] => {
   const headers = Object.keys(rows[0]);
   const clientNameKey = findHeaderKey(headers, ["Nombre Cliente", "Nombe Cliente"]);
   const clientRutKey = findHeaderKey(headers, ["Rut Cliente"]);
@@ -136,8 +139,9 @@ export const parsePremiums = (buffer: Buffer): PremiumRow[] => {
     .filter((row): row is PremiumRow => row !== null);
 };
 
-export const parseExpenses = (buffer: Buffer): ExpenseRow[] => {
-  const rows = parseWorkbook(buffer);
+export const parseExpenses = (buffer: Buffer): ExpenseRow[] => parseExpenseRows(parseWorkbook(buffer));
+
+const parseExpenseRows = (rows: Record<string, unknown>[]): ExpenseRow[] => {
   const headers = Object.keys(rows[0]);
   const clientNameKey = findHeaderKey(headers, ["Nombre Con", "Nombre Cliente", "Nombe Cliente"]);
   const periodKey = findHeaderKey(headers, ["PERIODO", "Periodo"]);
@@ -184,3 +188,58 @@ export const parseExpenses = (buffer: Buffer): ExpenseRow[] => {
     })
     .filter((row): row is ExpenseRow => row !== null);
 };
+
+// La carga HTTP usa streaming: no materializar todas las celdas y hojas del ZIP.
+export function parseUpload(buffer: Buffer, kind: "primas"): Promise<PremiumRow[]>;
+export function parseUpload(buffer: Buffer, kind: "gastos"): Promise<ExpenseRow[]>;
+export async function parseUpload(buffer: Buffer, kind: "primas" | "gastos") {
+  if (buffer.length < 2 || buffer.readUInt16LE(0) !== 0x4b50) {
+    return kind === "primas" ? parsePremiums(buffer) : parseExpenses(buffer);
+  }
+  const workbook = new ExcelJS.stream.xlsx.WorkbookReader(Readable.from([buffer]), {
+    worksheets: "emit", sharedStrings: "cache", styles: "ignore", hyperlinks: "ignore", entries: "ignore",
+  });
+  const rows: (PremiumRow | ExpenseRow)[] = [];
+  let batch: Record<string, unknown>[] = [];
+  const flush = () => {
+    if (!batch.length) return;
+    rows.push(...(kind === "primas" ? parsePremiumRows(batch) : parseExpenseRows(batch)));
+    batch = [];
+  };
+  let firstSheet = true;
+  const valueOf = (value: ExcelJS.CellValue): unknown => {
+    if (value && typeof value === "object" && !(value instanceof Date)) {
+      if ("result" in value) return value.result ?? "";
+      if ("richText" in value) return value.richText.map(part => part.text).join("");
+      if ("text" in value) return value.text;
+      return "";
+    }
+    return value ?? "";
+  };
+  for await (const sheet of workbook) {
+    const headers: string[] = [];
+    for await (const row of sheet) {
+      if (!firstSheet) continue;
+      if (row.number === 1) {
+        const used = new Set<string>();
+        for (let column = 1; column <= row.cellCount; column++) {
+          const base = String(valueOf(row.getCell(column).value) || "__EMPTY");
+          let header = base;
+          for (let suffix = 1; used.has(header); suffix++) header = `${base}_${suffix}`;
+          used.add(header);
+          headers.push(header);
+        }
+      } else if (row.hasValues) {
+        const record: Record<string, unknown> = Object.create(null);
+        headers.forEach((header, index) => { record[header] = valueOf(row.getCell(index + 1).value); });
+        batch.push(record);
+        if (batch.length >= 250) flush();
+      }
+    }
+    // Consumir también las hojas restantes permite al lector liberar sus temporales.
+    firstSheet = false;
+  }
+  flush();
+  if (!rows.length) throw new Error("Hoja sin datos.");
+  return rows;
+}

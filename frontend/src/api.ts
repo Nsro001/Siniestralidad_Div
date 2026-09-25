@@ -11,7 +11,12 @@ async function request(path: string, init: RequestInit = {}) {
   if (error || !session) throw new ApiError(401, "Inicia sesión para continuar.");
   const headers = new Headers(init.headers);
   headers.set("Authorization", `Bearer ${session.access_token}`);
-  const response = await fetch(`${API_BASE}${path}`, { ...init, headers, cache: "no-store" });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, { ...init, headers, cache: "no-store" });
+  } catch {
+    throw new ApiError(0, "No se pudo conectar con el servidor. Comprueba que el backend esté activo y vuelve a intentar. Si estabas cargando una sábana, verifica si se guardó antes de repetir la carga.");
+  }
   const body = await response.json().catch(() => null);
   if (!response.ok) {
     if (response.status === 401) window.dispatchEvent(new Event("session-expired"));
