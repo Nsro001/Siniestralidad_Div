@@ -47,3 +47,12 @@
 - Tabla comparativa a todo el ancho y sin límite de altura al imprimir; disponible también en la presentación.
 - Validación: compilación backend/frontend y TypeScript correctos; pruebas de comparación, detalle mensual y cartera aprobadas. Las sábanas corregidas permiten comparar nov. 2024–oct. 2025 con nov. 2023–oct. 2024 para los tres clientes.
 - Cambios locales; carga de sábanas y despliegue pendientes.
+
+## 2026-09-29 — CSV y publicación atómica por chunks
+- Soporte formal CSV UTF-8 con detección de coma/punto y coma, BOM y campos entre comillas; reutiliza los parsers de primas/gastos y mantiene XLS/XLSX.
+- Selector frontend admite CSV y lo recomienda para gastos grandes; límite de archivo de 30 MB (datos procesados: 25 MB).
+- Nueva migración con staging privado, validación de administrador/propietario, chunks idempotentes y publicación transaccional. Conserva RPC existentes, RLS, asignaciones y metadatos de cartera.
+- Backend envía hasta 500 filas/512 KiB por RPC y reintenta errores transitorios. El cierre verifica integridad y conserva recibos para reintentos; no modifica datos vigentes ante cargas incompletas.
+- Pruebas nuevas de CSV, reintentos, fallos intermedios, rollback, permisos e importación de 25.473 filas sintéticas. Finalización local con PGlite: 213 ms; no representa una medición en Supabase.
+- Validación: build de backend y frontend correctos; suite completa de 20 tests aprobada (prueba HTTP con permiso de puerto local); pruebas ampliadas de límite por bytes y respuesta de cierre perdida aprobadas.
+- Pendiente: aplicar migración, desplegar y comprobar la carga real en Supabase.

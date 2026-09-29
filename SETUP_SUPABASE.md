@@ -73,7 +73,7 @@ Las cuentas nuevas quedan sin clientes hasta que se asignan. La aplicación no e
 
 Solo el administrador puede cargar archivos. Cada archivo actualiza **la sábana del tipo cargado de cada cliente incluido** y conserva los otros clientes y el otro tipo de sábana. Por ejemplo, subir primas de A conserva las primas de B y los gastos de A. Para A, el archivo de primas debe incluir todos los períodos que quieras conservar de ese tipo: sustituye su conjunto anterior, no agrega meses.
 
-Los clientes se identifican por el nombre exacto que entrega el parser actual. Usa el mismo nombre en primas y gastos. Los datos procesados se guardan en JSONB por cliente/tipo para conservar los cálculos; no se guarda el Excel original. Límite de archivo: 10 MB; límite de filas serializadas: 25 MB por carga. Para volúmenes mayores, divide las sábanas por cliente. Las importaciones son transaccionales.
+Los clientes se identifican por el nombre exacto que entrega el parser actual. Usa el mismo nombre en primas y gastos. Los datos procesados se guardan en JSONB por cliente/tipo para conservar los cálculos; no se guarda el Excel original. Límite de archivo: 30 MB; límite de filas serializadas: 25 MB por carga. Para volúmenes mayores, divide las sábanas por cliente. Las importaciones son transaccionales.
 
 ## Desarrollo y verificación
 
@@ -199,3 +199,21 @@ Las cargas XLSX se leen con ExcelJS en streaming y se transforman en bloques de 
 Si al cargar aparece «Failed to fetch» en la pantalla de verificación de cuenta, revisar los registros y la memoria del backend en Render a la hora de la carga. La comprobación `/me` se ejecuta también cada minuto y al recuperar el foco; una caída del backend durante la importación puede hacer fallar esa comprobación. Una respuesta correcta de `/health` después del incidente no descarta un reinicio. Desplegar el backend con `npm ci && npm run build` para incluir el lector en streaming. Antes de repetir una carga cuya respuesta se perdió, comprobar si los datos llegaron a guardarse.
 
 En desarrollo, la interfaz llama a `/api` y Vite redirige al backend indicado en `VITE_API_URL` (por defecto `http://localhost:4000`). Deben ejecutarse ambos servicios: `npm run dev` en `backend` y en `frontend`. En producción se sigue usando `VITE_API_URL` directamente y `FRONTEND_ORIGIN` debe coincidir con el origen de la interfaz.
+
+### Actualización de cargas por chunks (2026-09-29)
+
+Antes de desplegar este backend, ejecutar en SQL Editor
+`supabase/migrations/202609290001_chunked_dataset_upload.sql`, después de
+`202609230001_replace_dataset.sql` y sus dependencias. No requiere cambiar claves,
+permisos ni límites de timeout; conserva las funciones de carga anteriores.
+
+Para gastos grandes, exportar desde Excel como **CSV UTF-8** (coma o punto y coma),
+con los mismos encabezados. XLS y XLSX siguen admitidos. Máximo 30 MB por archivo
+y 25 MB de filas procesadas. Mantener identificadores con ceros iniciales como texto.
+
+La carga usa staging y solo publica cuando todos los chunks están completos. Si falla,
+volver a enviar el archivo. Un cierre cuya respuesta se perdió puede haberse publicado;
+repetir la carga sustituye los datos, no los duplica. Staging incompleto y recibos se
+eliminan después de siete días al iniciar otra carga; los datos vigentes no se eliminan.
+Verificar con el archivo real los conteos, totales de UF y duración en Supabase tras aplicar
+la migración. La prueba sintética local no sustituye esa verificación.

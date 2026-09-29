@@ -275,3 +275,16 @@ Endpoints añadidos:
 - PUT /admin/users/:id (administrador, estado/nombre/asignaciones)
 
 Los endpoints existentes ahora requieren sesión; las cargas requieren administrador.
+
+## Cargas CSV y por chunks (2026-09-29; migración pendiente de aplicar)
+
+- Se mantienen XLS/XLSX; CSV UTF-8 es el formato recomendado para gastos grandes.
+- CSV admite BOM, coma o punto y coma, comillas escapadas y saltos dentro de campos. Usa los mismos encabezados y parsers de negocio. Fechas: ISO, día/mes/año o serial Excel.
+- Límite HTTP: 30 MB por archivo; límite de datos procesados: 25 MB JSON.
+- `saveRows` usa begin/append/finish_dataset_upload, con UUID, hasta 500 filas o 512 KiB por chunk y hasta tres intentos para errores transitorios.
+- Staging privado con RLS y RPC exclusivas de administradores activos, restringidas al creador de la carga. No usa service role.
+- Publicación atómica después de verificar todos los chunks y el total de filas; mantiene `client_datasets`, sus políticas y el trigger de cartera. Importación parcial y reemplazo global conservan su semántica.
+- Un fallo intermedio conserva las sábanas vigentes. El cierre es idempotente incluso si se perdió su respuesta. Si se agotan los intentos, se puede volver a cargar el archivo (nueva sesión); no hay reanudación entre solicitudes HTTP.
+- Staging y recibos caducan a los siete días y se limpian al iniciar otra carga. Los chunks completados se eliminan al publicar. No se limpian datos publicados.
+- Aplicar `supabase/migrations/202609290001_chunked_dataset_upload.sql` después de las migraciones existentes y antes de desplegar backend. Las RPC anteriores siguen disponibles.
+- La transacción final aún agrupa y escribe los datos en PostgreSQL; validar duración en Supabase con el archivo real. No se incrementa `statement_timeout`.

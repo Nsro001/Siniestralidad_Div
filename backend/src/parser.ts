@@ -32,6 +32,67 @@ const parseWorkbook = (buffer: Buffer) => {
   return rows;
 };
 
+// CSV UTF-8 estricto, con BOM opcional y campos RFC 4180 (incluidos saltos de línea).
+const parseCsv = (buffer: Buffer): Record<string, unknown>[] => {
+  const text = new TextDecoder("utf-8", { fatal: true }).decode(buffer);
+  let quoted = false;
+  let commas = 0, semicolons = 0;
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (char === '"') {
+      if (quoted && text[i + 1] === '"') i++;
+      else quoted = !quoted;
+    } else if (!quoted) {
+      if (char === "\n" || char === "\r") break;
+      if (char === ",") commas++;
+      if (char === ";") semicolons++;
+    }
+  }
+  const delimiter = semicolons > commas ? ";" : ",";
+  const records: string[][] = [];
+  let record: string[] = [], field = "", closed = false;
+  quoted = false;
+  const endField = () => { record.push(field); field = ""; closed = false; };
+  const endRecord = () => {
+    endField();
+    if (record.some(value => value.trim() !== "")) records.push(record);
+    record = [];
+  };
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (quoted) {
+      if (char === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else { quoted = false; closed = true; }
+      } else field += char;
+    } else if (char === delimiter) endField();
+    else if (char === "\r" || char === "\n") {
+      if (char === "\r" && text[i + 1] === "\n") i++;
+      endRecord();
+    } else if (char === '"' && field === "" && !closed) quoted = true;
+    else {
+      if (closed || char === '"') throw new Error("Comillas CSV inválidas.");
+      field += char;
+    }
+  }
+  if (quoted) throw new Error("Campo CSV sin cierre de comillas.");
+  endRecord();
+  const headers = records.shift();
+  if (!headers || !records.length) throw new Error("CSV sin datos.");
+  const used = new Set<string>();
+  const keys = headers.map(header => {
+    const base = header || "__EMPTY";
+    let key = base;
+    for (let suffix = 1; used.has(key); suffix++) key = `${base}_${suffix}`;
+    used.add(key);
+    return key;
+  });
+  return records.map(values => {
+    if (values.length !== keys.length) throw new Error("Número de columnas CSV inconsistente.");
+    return Object.fromEntries(keys.map((key, index) => [key, values[index]]));
+  });
+};
+
 const parseExcelDate = (value: unknown): Date | null => {
   if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
   if (typeof value === "number") {
@@ -42,6 +103,14 @@ const parseExcelDate = (value: unknown): Date | null => {
   if (typeof value === "string") {
     const trimmed = value.trim();
     if (!trimmed) return null;
+    // Exportaciones CSV de Excel: seriales y fechas locales día/mes/año.
+    if (/^\d{5}(?:\.\d+)?$/.test(trimmed)) return parseExcelDate(Number(trimmed));
+    const local = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/.exec(trimmed);
+    if (local) {
+      const [, day, month, year] = local.map(Number);
+      const date = new Date(Date.UTC(year, month - 1, day));
+      return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day ? date : null;
+    }
     const parsed = new Date(trimmed);
     if (!Number.isNaN(parsed.getTime())) return parsed;
   }
@@ -190,9 +259,13 @@ const parseExpenseRows = (rows: Record<string, unknown>[]): ExpenseRow[] => {
 };
 
 // La carga HTTP usa streaming: no materializar todas las celdas y hojas del ZIP.
-export function parseUpload(buffer: Buffer, kind: "primas"): Promise<PremiumRow[]>;
-export function parseUpload(buffer: Buffer, kind: "gastos"): Promise<ExpenseRow[]>;
-export async function parseUpload(buffer: Buffer, kind: "primas" | "gastos") {
+export function parseUpload(buffer: Buffer, kind: "primas", filename?: string): Promise<PremiumRow[]>;
+export function parseUpload(buffer: Buffer, kind: "gastos", filename?: string): Promise<ExpenseRow[]>;
+export async function parseUpload(buffer: Buffer, kind: "primas" | "gastos", filename?: string) {
+  if (filename?.toLowerCase().endsWith(".csv")) {
+    const records = parseCsv(buffer);
+    return kind === "primas" ? parsePremiumRows(records) : parseExpenseRows(records);
+  }
   if (buffer.length < 2 || buffer.readUInt16LE(0) !== 0x4b50) {
     return kind === "primas" ? parsePremiums(buffer) : parseExpenses(buffer);
   }

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ExpenseRow, PremiumRow } from "./types.js";
 import { allRows, databaseError, HttpError } from "./supabase.js";
@@ -20,10 +21,44 @@ export async function saveRows(db: SupabaseClient, kind: "primas" | "gastos", ro
   if (Buffer.byteLength(JSON.stringify(rows)) > 25 * 1024 * 1024) {
     throw new HttpError(413, "La sábana procesada supera 25 MB. Divide el archivo por cliente.");
   }
-  const { error } = replaceAll
-    ? await db.rpc("replace_client_dataset", { dataset_kind: kind, dataset_rows: rows })
-    : await db.rpc("import_client_dataset", { dataset_kind: kind, dataset_rows: rows });
-  databaseError(error);
+  // Máximo 500 filas y 512 KiB JSON por solicitud; margen para el formato jsonb.
+  const chunks: (PremiumRow | ExpenseRow)[][] = [];
+  let chunk: (PremiumRow | ExpenseRow)[] = [], bytes = 2;
+  for (const row of rows) {
+    const size = Buffer.byteLength(JSON.stringify(row)) + 1;
+    if (size > 512 * 1024 - 2) throw new HttpError(413, "Una fila supera el tamaño permitido.");
+    if (chunk.length && (chunk.length >= 500 || bytes + size > 512 * 1024)) {
+      chunks.push(chunk); chunk = []; bytes = 2;
+    }
+    chunk.push(row); bytes += size;
+  }
+  if (chunk.length) chunks.push(chunk);
+  const uploadId = randomUUID();
+  const rpc = async (name: string, args: Record<string, unknown>) => {
+    for (let attempt = 0; ; attempt++) {
+      let result;
+      try { result = await db.rpc(name, args); }
+      catch {
+        result = { error: { code: "NETWORK" } };
+      }
+      const error = result.error;
+      if (!error) return;
+      if (error.code === "PGRST202") throw new HttpError(503,
+        "Falta ejecutar la migración 202609290001_chunked_dataset_upload.sql en Supabase.");
+      const transient = !error.code || ["NETWORK", "57014", "40001", "40P01", "08006", "PGRST000", "PGRST001", "PGRST002"].includes(error.code);
+      if (!transient || attempt >= 2) {
+        if (error.code === "42501") databaseError(error);
+        throw new HttpError(503, "No se pudo confirmar la carga. Los datos publicados se conservan hasta completar todos los chunks. Puedes reintentar el archivo.");
+      }
+      await new Promise(resolve => setTimeout(resolve, 250 * 2 ** attempt));
+    }
+  };
+  await rpc("begin_dataset_upload", { upload_id: uploadId, dataset_kind: kind, replace_all: replaceAll,
+    expected_chunks: chunks.length, expected_rows: rows.length });
+  for (const [index, rows] of chunks.entries()) {
+    await rpc("append_dataset_upload_chunk", { upload_id: uploadId, chunk_index: index, chunk_rows: rows });
+  }
+  await rpc("finish_dataset_upload", { upload_id: uploadId });
 }
 export async function getFilters(db: SupabaseClient) {
   const clients = await allRows(db, "clients", "id,name", "id");

@@ -18,7 +18,7 @@ const adminOnly: RequestHandler = (_req, res, next) => {
 
 export function createApp(verifySession = authenticate) {
   const app = express();
-  const upload = multer({ limits: { fileSize: 10 * 1024 * 1024, files: 1 } });
+  const upload = multer({ limits: { fileSize: 30 * 1024 * 1024, files: 1 } });
   const CONSOLIDATED = "Consolidado S+D+C";
   const CONSOLIDATED_SET = new Set(["Salud", "Dental", "Catastrófico"]);
 
@@ -38,12 +38,12 @@ export function createApp(verifySession = authenticate) {
     const file = req.file;
     if (!file) return res.status(400).json({ error: "Archivo de primas requerido." });
     try {
-      const rows = await parseUpload(file.buffer, "primas");
+      const rows = await parseUpload(file.buffer, "primas", file.originalname);
       await saveRows(res.locals.auth.db, "primas", rows, req.body?.mode === "replace");
       return res.json({ status: "ok", rows: rows.length });
     } catch (error) {
       if (error instanceof HttpError) throw error;
-      return res.status(400).json({ error: "No se pudo leer el Excel. Revisa su formato y columnas." });
+      return res.status(400).json({ error: "No se pudo leer el archivo. Usa Excel o CSV UTF-8 y revisa su formato y columnas." });
     }
   }));
 
@@ -51,12 +51,12 @@ export function createApp(verifySession = authenticate) {
     const file = req.file;
     if (!file) return res.status(400).json({ error: "Archivo de gastos requerido." });
     try {
-      const rows = await parseUpload(file.buffer, "gastos");
+      const rows = await parseUpload(file.buffer, "gastos", file.originalname);
       await saveRows(res.locals.auth.db, "gastos", rows, req.body?.mode === "replace");
       return res.json({ status: "ok", rows: rows.length });
     } catch (error) {
       if (error instanceof HttpError) throw error;
-      return res.status(400).json({ error: "No se pudo leer el Excel. Revisa su formato y columnas." });
+      return res.status(400).json({ error: "No se pudo leer el archivo. Usa Excel o CSV UTF-8 y revisa su formato y columnas." });
     }
   }));
 
@@ -184,7 +184,7 @@ export function createApp(verifySession = authenticate) {
   }));
   const handleError: ErrorRequestHandler = (error, _req, res, _next) => {
     if (error instanceof HttpError) return res.status(error.status).json({ error: error.message });
-    if (error instanceof multer.MulterError) return res.status(400).json({ error: "Carga un único archivo Excel de hasta 10 MB." });
+    if (error instanceof multer.MulterError) return res.status(400).json({ error: "Carga un único archivo Excel o CSV UTF-8 de hasta 30 MB." });
     if (error?.type === "entity.parse.failed") return res.status(400).json({ error: "Solicitud inválida." });
     if (error?.type === "entity.too.large") return res.status(413).json({ error: "La solicitud supera el tamaño permitido." });
     res.status(500).json({ error: "No se pudo completar la operación. Intenta nuevamente." });

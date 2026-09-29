@@ -246,7 +246,7 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
       </header>
 
       {profile.role === "admin" && <>
-      <p className="no-print mb-4 text-sm text-ink/70">Máximo 10 MB por archivo. El resumen de cartera muestra los clientes con primas cargadas.</p>
+      <p className="no-print mb-4 text-sm text-ink/70">Máximo 30 MB por archivo. Para gastos grandes se recomienda CSV UTF-8, separado por coma o punto y coma; también se acepta Excel. El resumen de cartera muestra los clientes con primas cargadas.</p>
       <label className="no-print block mb-4">Tipo de carga <select value={uploadMode} disabled={uploading} onChange={event => setUploadMode(event.target.value as "replace" | "merge")}><option value="replace">Reemplazar la sábana completa</option><option value="merge">Actualizar solo los clientes del archivo</option></select><span className="block text-sm mt-2">{uploadMode === "replace" ? "Se reemplazan todos los datos del tipo cargado (primas o gastos), incluidos los de clientes ausentes del nuevo archivo. Carga ambos archivos para renovar ambas sábanas." : "Se conservan los datos de los clientes que no aparecen en el archivo."}</span></label>
       <section className="no-print grid gap-6 md:grid-cols-2">
         <div className="glass-panel rounded-3xl p-6 shadow-soft-xl">
@@ -254,7 +254,7 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
           <input
             type="file"
             disabled={uploading}
-            accept=".xls,.xlsx"
+            accept=".xls,.xlsx,.csv"
             onChange={(event) => {
               const file = event.target.files?.[0];
               event.target.value = "";
@@ -269,7 +269,7 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
           <input
             type="file"
             disabled={uploading}
-            accept=".xls,.xlsx"
+            accept=".xls,.xlsx,.csv"
             onChange={(event) => {
               const file = event.target.files?.[0];
               event.target.value = "";
