@@ -65,3 +65,10 @@
 - Pruebas de regresión con 25.472 filas sintéticas/62 columnas y heap de 128 MiB, errores al final del CSV y límite de tamaño. El archivo real no se incorpora al repositorio.
 - Validación: build backend correcto, 23 tests aprobados y carga HTTP local del CSV real con respuesta 200, 25.472 filas y 51 chunks (Supabase simulado). Hash de todas las filas idéntico al parser anterior.
 - Sin cambios SQL: no volver a ejecutar la migración. Pendiente confirmar carga en producción con el backend actualizado.
+
+## 2026-09-29 — Fechas CSV con año de dos dígitos
+- Corregida la lectura de fechas locales `dd/mm/aa` y `dd-mm-aa`: `01/02/25` se interpreta como febrero de 2025. Antes caía en `Date` y se interpretaba como enero, agrupando los meses incorrectamente.
+- Años cortos: 00–49 corresponden a 2000–2049 y 50–99 a 1950–1999. Se mantiene la validación de días/bisiestos y el soporte de años completos, ISO y serial Excel.
+- Validación con el CSV actual: la comparación enero–octubre de 2025/2024 queda completa para INTERANDINA y JUANITO PEREZ. POOL TRIPER comienza en julio de 2024 y carece realmente de enero–junio de 2024.
+- Build backend y 25 tests aprobados, incluidas regresiones de doce meses, comparación anual, primas y renovación.
+- Es necesario volver a cargar el archivo tras desplegar: el cambio de parser no modifica los períodos ya persistidos. No requiere SQL nuevo.

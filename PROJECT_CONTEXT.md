@@ -296,3 +296,9 @@ Los endpoints existentes ahora requieren sesión; las cargas requieren administr
 - Se corrigió la retención de todas las celdas CSV: generador + bloques de 250 filas. El backend sigue reteniendo el archivo y las filas procesadas; no es streaming HTTP completo.
 - `saveRows` cuenta bytes por fila para evitar otra copia JSON completa. Mantiene el límite de 25 MiB y los chunks de 500 filas/512 KiB.
 - Logs aportados: lecturas/auth de Supabase correctas, sin RPC de carga en el extracto; no prueban reinicio de Render. La memoria elevada observada localmente justifica la corrección, pero la causa del fallo de producción debe confirmarse con logs de Render o nueva carga.
+
+## Fechas de CSV y comparación anual (2026-09-29)
+
+- Se encontró un CSV posterior con fechas `01/02/25`, antes interpretadas como mes/día por el fallback de JavaScript. Se agregó lectura explícita de día/mes/año con dos dígitos; años 00–49 → 2000–2049, 50–99 → 1950–1999.
+- Las sábanas cargadas con el parser anterior deben volver a cargarse para reparar los períodos; el despliegue no reescribe datos existentes.
+- El CSV actual difiere de los XLSX corregidos: INTERANDINA/JUANITO tienen historia para enero–octubre 2024/2025; POOL comienza en julio de 2024. No inventar meses ausentes ni cambiar la lógica de comparación para ocultarlos.

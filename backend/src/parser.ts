@@ -114,9 +114,13 @@ const parseExcelDate = (value: unknown): Date | null => {
     if (!trimmed) return null;
     // Exportaciones CSV de Excel: seriales y fechas locales día/mes/año.
     if (/^\d{5}(?:\.\d+)?$/.test(trimmed)) return parseExcelDate(Number(trimmed));
-    const local = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/.exec(trimmed);
+    const local = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4}|\d{2})$/.exec(trimmed);
     if (local) {
-      const [, day, month, year] = local.map(Number);
+      const day = Number(local[1]), month = Number(local[2]);
+      const rawYear = Number(local[3]);
+      // CSV local dd/mm/aa: 00–49 = 2000–2049; 50–99 = 1950–1999.
+      // No delegar fechas ambiguas a Date, que interpreta mes/día/año.
+      const year = local[3].length === 2 ? rawYear + (rawYear < 50 ? 2000 : 1900) : rawYear;
       const date = new Date(Date.UTC(year, month - 1, day));
       return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day ? date : null;
     }
