@@ -33,7 +33,7 @@ const parseWorkbook = (buffer: Buffer) => {
 };
 
 // CSV UTF-8 estricto, con BOM opcional y campos RFC 4180 (incluidos saltos de línea).
-const parseCsv = (buffer: Buffer): Record<string, unknown>[] => {
+function* parseCsv(buffer: Buffer): Generator<Record<string, unknown>> {
   const text = new TextDecoder("utf-8", { fatal: true }).decode(buffer);
   let quoted = false;
   let commas = 0, semicolons = 0;
@@ -49,49 +49,58 @@ const parseCsv = (buffer: Buffer): Record<string, unknown>[] => {
     }
   }
   const delimiter = semicolons > commas ? ";" : ",";
-  const records: string[][] = [];
-  let record: string[] = [], field = "", closed = false;
+  let keys: string[] | undefined;
+  let record: string[] = [], parts: string[] = [], closed = false, fieldStart = 0;
   quoted = false;
-  const endField = () => { record.push(field); field = ""; closed = false; };
-  const endRecord = () => {
-    endField();
-    if (record.some(value => value.trim() !== "")) records.push(record);
+  // Cortar segmentos evita crear cadenas enlazadas carácter a carácter por cada celda.
+  const endField = (index: number) => {
+    if (!closed) parts.push(text.slice(fieldStart, index));
+    record.push(parts.join(""));
+    parts = []; closed = false; fieldStart = index + 1;
+  };
+  const endRecord = (index: number) => {
+    endField(index);
+    const values = record;
     record = [];
+    if (!values.some(value => value.trim() !== "")) return;
+    if (!keys) {
+      const used = new Set<string>();
+      keys = values.map(header => {
+        const base = header || "__EMPTY";
+        let key = base;
+        for (let suffix = 1; used.has(key); suffix++) key = `${base}_${suffix}`;
+        used.add(key);
+        return key;
+      });
+      return;
+    }
+    if (values.length !== keys.length) throw new Error("Número de columnas CSV inconsistente.");
+    const result: Record<string, unknown> = Object.create(null);
+    for (let index = 0; index < keys.length; index++) result[keys[index]] = values[index];
+    return result;
   };
   for (let i = 0; i < text.length; i++) {
     const char = text[i];
     if (quoted) {
       if (char === '"') {
-        if (text[i + 1] === '"') { field += '"'; i++; }
+        parts.push(text.slice(fieldStart, i));
+        if (text[i + 1] === '"') { parts.push('"'); i++; fieldStart = i + 1; }
         else { quoted = false; closed = true; }
-      } else field += char;
-    } else if (char === delimiter) endField();
+      }
+    } else if (char === delimiter) endField(i);
     else if (char === "\r" || char === "\n") {
+      const completed = endRecord(i);
       if (char === "\r" && text[i + 1] === "\n") i++;
-      endRecord();
-    } else if (char === '"' && field === "" && !closed) quoted = true;
-    else {
-      if (closed || char === '"') throw new Error("Comillas CSV inválidas.");
-      field += char;
-    }
+      fieldStart = i + 1;
+      if (completed) yield completed;
+    } else if (char === '"' && i === fieldStart && !closed) {
+      quoted = true; fieldStart = i + 1;
+    } else if (closed || char === '"') throw new Error("Comillas CSV inválidas.");
   }
   if (quoted) throw new Error("Campo CSV sin cierre de comillas.");
-  endRecord();
-  const headers = records.shift();
-  if (!headers || !records.length) throw new Error("CSV sin datos.");
-  const used = new Set<string>();
-  const keys = headers.map(header => {
-    const base = header || "__EMPTY";
-    let key = base;
-    for (let suffix = 1; used.has(key); suffix++) key = `${base}_${suffix}`;
-    used.add(key);
-    return key;
-  });
-  return records.map(values => {
-    if (values.length !== keys.length) throw new Error("Número de columnas CSV inconsistente.");
-    return Object.fromEntries(keys.map((key, index) => [key, values[index]]));
-  });
-};
+  const completed = endRecord(text.length);
+  if (completed) yield completed;
+}
 
 const parseExcelDate = (value: unknown): Date | null => {
   if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
@@ -263,8 +272,26 @@ export function parseUpload(buffer: Buffer, kind: "primas", filename?: string): 
 export function parseUpload(buffer: Buffer, kind: "gastos", filename?: string): Promise<ExpenseRow[]>;
 export async function parseUpload(buffer: Buffer, kind: "primas" | "gastos", filename?: string) {
   if (filename?.toLowerCase().endsWith(".csv")) {
-    const records = parseCsv(buffer);
-    return kind === "primas" ? parsePremiumRows(records) : parseExpenseRows(records);
+    // Solo retener 250 registros con todas las columnas. Las filas finales contienen
+    // únicamente los campos utilizados por los reportes, igual que en XLSX.
+    const rows: (PremiumRow | ExpenseRow)[] = [];
+    let batch: Record<string, unknown>[] = [];
+    const flush = () => {
+      if (!batch.length) return;
+      rows.push(...(kind === "primas" ? parsePremiumRows(batch) : parseExpenseRows(batch)));
+      batch = [];
+    };
+    for (const record of parseCsv(buffer)) {
+      batch.push(record);
+      if (batch.length >= 250) {
+        flush();
+        // Dar paso a las consultas de sesión/salud mientras se procesa un CSV grande.
+        await new Promise<void>(resolve => setImmediate(resolve));
+      }
+    }
+    flush();
+    if (!rows.length) throw new Error("CSV sin datos.");
+    return rows;
   }
   if (buffer.length < 2 || buffer.readUInt16LE(0) !== 0x4b50) {
     return kind === "primas" ? parsePremiums(buffer) : parseExpenses(buffer);

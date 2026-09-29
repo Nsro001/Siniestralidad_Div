@@ -288,3 +288,11 @@ Los endpoints existentes ahora requieren sesión; las cargas requieren administr
 - Staging y recibos caducan a los siete días y se limpian al iniciar otra carga. Los chunks completados se eliminan al publicar. No se limpian datos publicados.
 - Aplicar `supabase/migrations/202609290001_chunked_dataset_upload.sql` después de las migraciones existentes y antes de desplegar backend. Las RPC anteriores siguen disponibles.
 - La transacción final aún agrupa y escribe los datos en PostgreSQL; validar duración en Supabase con el archivo real. No se incrementa `statement_timeout`.
+
+## Diagnóstico de conexión durante carga CSV (2026-09-29)
+
+- Migración de chunks aplicada por el usuario y RPC verificadas; versión inicial publicada en el commit 67277eb.
+- CSV real validado localmente: 25.472 filas de datos, 62 columnas, UTF-8, separador `;`, sin columnas inconsistentes.
+- Se corrigió la retención de todas las celdas CSV: generador + bloques de 250 filas. El backend sigue reteniendo el archivo y las filas procesadas; no es streaming HTTP completo.
+- `saveRows` cuenta bytes por fila para evitar otra copia JSON completa. Mantiene el límite de 25 MiB y los chunks de 500 filas/512 KiB.
+- Logs aportados: lecturas/auth de Supabase correctas, sin RPC de carga en el extracto; no prueban reinicio de Render. La memoria elevada observada localmente justifica la corrección, pero la causa del fallo de producción debe confirmarse con logs de Render o nueva carga.

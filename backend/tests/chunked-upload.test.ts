@@ -66,6 +66,14 @@ test("storage: limita chunks, reintenta misma identidad y no finaliza tras un fa
   assert.ok(!calls.some(call => call.name === "finish_dataset_upload"));
 });
 
+test("storage: rechaza más de 25 MiB procesados antes de iniciar una carga", async () => {
+  let called = false;
+  const db = { async rpc() { called = true; return { error: null }; } } as unknown as SupabaseClient;
+  const rows = Array.from({ length: 300 }, () => ({ ...row, policy: "á".repeat(50000) }));
+  await assert.rejects(saveRows(db, "primas", rows), /supera 25 MB/);
+  assert.equal(called, false);
+});
+
 test("SQL: staging atómico, idempotencia, reemplazo, RLS y 25.473 filas", async () => {
   const db = new PGlite();
   const admin = "00000000-0000-4000-8000-000000000001";

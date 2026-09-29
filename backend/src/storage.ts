@@ -18,14 +18,16 @@ export async function getRows<T extends PremiumRow | ExpenseRow>(db: SupabaseCli
 }
 export async function saveRows(db: SupabaseClient, kind: "primas" | "gastos", rows: PremiumRow[] | ExpenseRow[], replaceAll = false) {
   if (!rows.length) throw new HttpError(400, "El archivo no contiene filas válidas.");
-  if (Buffer.byteLength(JSON.stringify(rows)) > 25 * 1024 * 1024) {
-    throw new HttpError(413, "La sábana procesada supera 25 MB. Divide el archivo por cliente.");
-  }
   // Máximo 500 filas y 512 KiB JSON por solicitud; margen para el formato jsonb.
   const chunks: (PremiumRow | ExpenseRow)[][] = [];
-  let chunk: (PremiumRow | ExpenseRow)[] = [], bytes = 2;
+  let chunk: (PremiumRow | ExpenseRow)[] = [], bytes = 2, totalBytes = 1;
   for (const row of rows) {
     const size = Buffer.byteLength(JSON.stringify(row)) + 1;
+    // Contar por fila evita crear otra cadena con toda la sábana para medirla.
+    totalBytes += size;
+    if (totalBytes > 25 * 1024 * 1024) {
+      throw new HttpError(413, "La sábana procesada supera 25 MB. Divide el archivo por cliente.");
+    }
     if (size > 512 * 1024 - 2) throw new HttpError(413, "Una fila supera el tamaño permitido.");
     if (chunk.length && (chunk.length >= 500 || bytes + size > 512 * 1024)) {
       chunks.push(chunk); chunk = []; bytes = 2;

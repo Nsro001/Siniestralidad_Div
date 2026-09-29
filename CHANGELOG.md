@@ -56,3 +56,12 @@
 - Pruebas nuevas de CSV, reintentos, fallos intermedios, rollback, permisos e importación de 25.473 filas sintéticas. Finalización local con PGlite: 213 ms; no representa una medición en Supabase.
 - Validación: build de backend y frontend correctos; suite completa de 20 tests aprobada (prueba HTTP con permiso de puerto local); pruebas ampliadas de límite por bytes y respuesta de cierre perdida aprobadas.
 - Pendiente: aplicar migración, desplegar y comprobar la carga real en Supabase.
+
+## 2026-09-29 — Menor consumo de memoria al leer CSV grandes
+- El CSV facilitado tiene 62 columnas, 25.472 filas de datos (25.473 con encabezado), separador punto y coma y 15.613.695 bytes; su formato es válido.
+- El parser anterior retenía todas las celdas del CSV y alcanzó 540 MiB RSS en la prueba local, compatible con un posible agotamiento de memoria en un servidor de 512 MB. Los logs aportados son de Supabase y no confirman un reinicio de Render.
+- Lectura mediante generador y transformación en bloques de 250 registros, sin conservar la tabla completa de celdas. Cede el control entre bloques y evita concatenaciones carácter a carácter.
+- El límite de 25 MiB procesados se calcula por fila, sin serializar la sábana completa. Se mantienen validaciones y RPC de chunks.
+- Pruebas de regresión con 25.472 filas sintéticas/62 columnas y heap de 128 MiB, errores al final del CSV y límite de tamaño. El archivo real no se incorpora al repositorio.
+- Validación: build backend correcto, 23 tests aprobados y carga HTTP local del CSV real con respuesta 200, 25.472 filas y 51 chunks (Supabase simulado). Hash de todas las filas idéntico al parser anterior.
+- Sin cambios SQL: no volver a ejecutar la migración. Pendiente confirmar carga en producción con el backend actualizado.
