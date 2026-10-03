@@ -1,5 +1,12 @@
 # Siniestralidad_Div - Contexto del proyecto
 
+## Descarga de gastos y cálculo técnico (2026-10-03)
+
+- Botón «Descargar sábana de gastos»: Excel con el detalle procesado almacenado, filtrado por cliente, meses exactos y coberturas seleccionadas. Incluye ceros, negativos y prestaciones excluidas de los gráficos; no recupera columnas originales descartadas durante la carga. Hoja adicional con la selección aplicada.
+- GET `/report/gastos/download`: exige sesión y acceso al cliente; rechaza filtros vacíos y selecciones sin registros.
+- La conclusión calcula siniestralidad consolidada S+D+C menos 75: resultado positivo = incremento técnico esperado, negativo = descuento, cero = sin ajuste. Utiliza primas y gasto del cliente y meses seleccionados, sin duplicar consolidado, incluso al visualizar una sola cobertura.
+- Este cálculo se muestra para cualquier período seleccionado (sustituye la restricción anterior desde mes 10); requiere registros de primas en cada mes, importes finitos y prima total positiva. Las observaciones de calidad de datos y seguimiento de vigencia se mantienen.
+
 ## Repositorio
 GitHub:
 https://github.com/Nsro001/Siniestralidad_Div

@@ -3,7 +3,7 @@ import ReportCover from "./components/ReportCover";
 import type { ExecutiveConclusion as Conclusion, ReportBranding } from "../../shared/executive";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
-  fetchClaimantsReport, fetchConclusion, fetchBranding,
+  fetchClaimantsReport, fetchConclusion, fetchBranding, downloadGastos,
   fetchFilters,
   fetchGastosReport,
   fetchPrimasReport,
@@ -74,6 +74,8 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
   const [brandingError, setBrandingError] = useState("");
   const [generated, setGenerated] = useState(new Date());
   const [printing, setPrinting] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState('');
   const [presenting, setPresenting] = useState(false);
   const [theme, setTheme] = useState("classic");
   const [premiumUploaded, setPremiumUploaded] = useState(false);
@@ -180,6 +182,22 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
     window.addEventListener('beforeprint', refresh);
     return () => window.removeEventListener('beforeprint', refresh);
   }, []);
+  async function exportExpenses() {
+    setDownloading(true); setDownloadError('');
+    const client = selectedClient;
+    const periods = [...selectedPeriods].sort();
+    try {
+      const blob = await downloadGastos({ client, periods: periods.join(','), coverages: selectedCoverages.join(',') });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `sabana-gastos-${client.replace(/[^\p{L}\p{N}_-]/gu, '_')}-${periods[0]}_${periods[periods.length - 1]}.xlsx`;
+      document.body.appendChild(link); link.click(); link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) { setDownloadError(err instanceof Error ? err.message : 'No se pudo descargar la sábana.'); }
+    finally { setDownloading(false); }
+  }
+
   async function exportPdf() {
     setPrinting(true); setError(null); setGenerated(new Date());
     try {
@@ -278,8 +296,14 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
           >
             Exportar PDF
           </button>
+          <button className="rounded-full border border-ink/20 bg-white/70 px-4 py-2 text-sm"
+            disabled={!gastosReport || !selectedClient || !selectedPeriods.length || !selectedCoverages.length || uploading || downloading || !!error}
+            onClick={exportExpenses}>
+            {downloading ? 'Descargando…' : 'Descargar sábana de gastos'}
+          </button>
         </div>
       </header>
+      {downloadError && <p role="alert" className="no-print mb-4 text-sm text-ember">{downloadError}</p>}
 
       {profile.role === "admin" && <>
       <p className="no-print mb-4 text-sm text-ink/70">Máximo 30 MB por archivo. Para gastos grandes se recomienda CSV UTF-8, separado por coma o punto y coma; también se acepta Excel. El resumen de cartera muestra los clientes con primas cargadas.</p>

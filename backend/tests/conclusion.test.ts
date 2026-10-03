@@ -13,24 +13,25 @@ test('mes de vigencia usa calendario, aniversarios y selección histórica, no c
  assert.equal(validity(['2024-11','2025-08','2025-11'],['2024-11','2025-11'])?.mixed,true);
  assert.equal(validity([],['2025-01']),null);
 });
-test('meses 1 a 9 no usan 75% ni recomiendan tarifas, incluso con siniestralidad alta',()=>{
- for(let n=1;n<10;n++) {const r=conclusion(n,120);assert.equal(r.sections.length,5);assert.doesNotMatch(JSON.stringify(r),/75%|cambio de precio|ajuste de precio|mantener precios/);}
+test('renovación calcula incremento, descuento y equilibrio para cualquier mes',()=>{
+ for (const n of [1, 9, 10, 12]) {
+  for (const [spend, expected] of [[92.6, /incremento técnico de 17,6%/], [68, /descuento técnico de 7%/], [75, /no se espera incremento ni descuento/]] as const) {
+   assert.match(conclusion(n, spend).sections.at(-1)!.text, expected);
+  }
+ }
 });
-test('mes 10: bajo, cercano y sobre equilibrio; incluye fronteras de banda',()=>{
- for(const [spend,match] of [[60,/bajo la referencia/],[73,/cercana/],[75,/cercana/],[77,/cercana/],[78,/por sobre/]] as const){const r=conclusion(10,spend);assert.equal(r.month,10);assert.equal(r.sections.length,6);assert.match(r.sections[5].text,match);}
- assert.equal(conclusion(12).sections.length,6);
+test('renovación usa el consolidado del cliente y exactamente los meses seleccionados',()=>{
+ const p = premiums(3, 60).map(r => ({...r, spendUf: r.period === '2025-03' ? 100 : 60}));
+ p.push(...premiums(3,999).map(r=>({...r,clientName:'B'})));
+ p.push({...p[0],coverage:'Consolidado S+D+C',spendUf:9999});
+ const r=buildConclusion(p,[],'A','Salud','2025-01,2025-03');
+ assert.match(r.sections.at(-1)!.text,/incremento técnico de 5%/);
 });
-test('no aplica equilibrio a meses parciales, huecos, coberturas aisladas o prima cero',()=>{
- const p=premiums(10);
- for(const [rows,selected,coverage] of [
-  [p,periods(10).slice(1),'Consolidado S+D+C'],
-  [p,periods(10).filter(x=>x!=='2025-04'),'Consolidado S+D+C'],
-  [p,periods(10),'Salud'],
-  [p.map(r=>({...r,premiumUf:0})),periods(10),'Consolidado S+D+C'],
-  [p.filter(r=>r.coverage!=='Catastrófico'),periods(10),'Consolidado S+D+C'],
-  [p.filter(r=>!(r.coverage==='Dental' && r.period==='2025-04')),periods(10),'Consolidado S+D+C'],
- ] as const) {const r=buildConclusion([...rows],[],'A',coverage,[...selected].join(','));assert.equal(r.sections.length,5);assert.doesNotMatch(JSON.stringify(r),/75%/);}
- assert.equal(buildConclusion([],[],'A','Salud','2025-10').month,null);
+test('renovación no estima con prima cero o meses sin primas',()=>{
+ for(const rows of [premiums(2).map(r=>({...r,premiumUf:0})),premiums(1)]) {
+  const r=buildConclusion(rows,[],'A','Salud','2025-01,2025-02');
+  assert.match(r.sections.at(-1)!.text,/No se puede calcular/);
+ }
 });
 test('pondera prima y gasto sin duplicar consolidado; detecta tendencia y concentración sustentadas',()=>{
  const p=premiums(6).map(r=>({...r,spendUf:r.period<'2025-04'?20:90}));
@@ -44,7 +45,7 @@ test('pondera prima y gasto sin duplicar consolidado; detecta tendencia y concen
  assert.match(r.sections[2].text,/asegurados identificados/);
  assert.match(r.sections[3].text,/Riesgo creciente/);
  assert.match(r.sections[4].text,/casos de mayor gasto/);
- assert.doesNotMatch(JSON.stringify(r),/75%/);
+ assert.match(r.sections.at(-1)!.text,/descuento técnico de 20%/);
 });
 test('identificadores ausentes no se interpretan como un prestador o asegurado concentrado',()=>{
  const e:ExpenseRow={clientName:'A',period:'2025-01',coverage:'Salud',reembolsoUf:100,descCober:'CONSULTAS',provider:'(Sin prestador)',insuredRut:'(Sin rut)',patientRut:'',relation:'',isapre:'',valPrest:0,valBonif:0,mtoReclam:0};

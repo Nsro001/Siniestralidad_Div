@@ -1,4 +1,5 @@
 import cors from "cors";
+import { buildExpenseExport } from "./expenseExport.js";
 import { buildConclusion } from "./conclusion.js";
 import { validateBranding } from "./branding.js";
 import { buildMonthlyDetail } from "./monthly.js";
@@ -119,6 +120,18 @@ export function createApp(verifySession = authenticate) {
     const periods = String(req.query.periods ?? "");
     const report = buildPrimasReport(await getRows<PremiumRow>(res.locals.auth.db, allowedClient.id, "primas"), client, coverages, periods);
     res.json({ series: report });
+  }));
+
+  app.get("/report/gastos/download", asyncRoute(async (req, res) => {
+    const client = String(req.query.client ?? "");
+    const allowedClient = await getClient(res.locals.auth.db, client);
+    const buffer = await buildExpenseExport(
+      await getRows<ExpenseRow>(res.locals.auth.db, allowedClient.id, "gastos"),
+      client, String(req.query.periods ?? ""), String(req.query.coverages ?? ""),
+    );
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", 'attachment; filename="sabana-gastos.xlsx"');
+    res.send(Buffer.from(buffer));
   }));
 
   app.get("/report/gastos", asyncRoute(async (req, res) => {

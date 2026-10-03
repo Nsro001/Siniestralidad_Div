@@ -37,15 +37,15 @@ export function buildConclusion(premiums: PremiumRow[], expenses: ExpenseRow[], 
   const complete = monthly.length > 0 && monthly.every(m => m.premium > 0 && m.spend >= 0 && Number.isFinite(m.premium) && Number.isFinite(m.spend));
   const scopeCoverages = [...new Set(rows.map(r => r.coverage))];
   const coverageComplete = selected.every(p => scopeCoverages.every(c => rows.some(r => r.period === p && r.coverage === c)));
-  if (!coverageComplete) notes.push('Faltan registros mensuales de una o más coberturas: no se evalúa equilibrio.');
+  if (!coverageComplete) notes.push('Faltan registros mensuales de una o más coberturas: la evaluación de vigencia completa requiere revisión.');
   const fullValidity = !!v && !v.mixed && contiguous && selected[0] === v.start && complete && coverageComplete;
-  if (!complete) notes.push('Faltan meses con prima positiva o hay importes no válidos; no se concluye equilibrio.');
-  if (v?.mixed) notes.push('La selección abarca más de una vigencia: no corresponde evaluar equilibrio de renovación.');
+  if (!complete) notes.push('Faltan meses con prima positiva o hay importes no válidos; la evaluación de vigencia completa requiere revisión.');
+  if (v?.mixed) notes.push('La selección abarca más de una vigencia: el cálculo técnico corresponde al conjunto de meses seleccionados.');
   if (!contiguous || (v && selected[0] !== v.start)) notes.push('La selección no cubre de forma continua la vigencia hasta el corte.');
-  if (!consolidated) notes.push('Análisis de coberturas seleccionadas: el equilibrio de renovación requiere el consolidado Salud + Dental + Catastrófico.');
+  if (!consolidated) notes.push('El análisis describe las coberturas seleccionadas; el cálculo técnico de renovación utiliza el consolidado Salud + Dental + Catastrófico.');
   const availableCov = new Set(own.filter(r => selected.includes(r.period)).map(r => r.coverage));
   const missingCov = COV.filter(c => !availableCov.has(c));
-  if (consolidated && missingCov.length) notes.push(`Sin registros de ${missingCov.join(', ')}; confirmar si corresponde a cobertura no contratada o información faltante.`);
+  if (missingCov.length) notes.push(`Sin registros de ${missingCov.join(', ')}; confirmar si corresponde a cobertura no contratada o información faltante.`);
   let trend = 'Datos insuficientes para establecer tendencia: se requieren al menos cuatro meses consecutivos con prima positiva.';
   let delta: number | null = null;
   if (complete && coverageComplete && contiguous && monthly.length >= 4) {
@@ -86,9 +86,21 @@ export function buildConclusion(premiums: PremiumRow[], expenses: ExpenseRow[], 
     { title: 'Nivel de riesgo', text: risk },
     { title: 'Recomendaciones de gestión', text: recommendations.join(' ') },
   ];
-  if (eligible) sections.push({ title: 'Consideraciones para renovación', text: ratio! < CONCLUSION_RULES.equilibrium - CONCLUSION_RULES.nearBand
-    ? 'La experiencia se encuentra bajo la referencia de equilibrio de 75% definida para mantener precios, sujeta a la evolución de los meses restantes. No constituye garantía de tarifa.'
-    : ratio! <= CONCLUSION_RULES.equilibrium + CONCLUSION_RULES.nearBand ? 'La experiencia está cercana a la referencia de equilibrio de 75% (banda de seguimiento 73%–77%); existe presión sobre el equilibrio y debe monitorearse de cara a la renovación.'
-    : 'La experiencia está por sobre la referencia de equilibrio de 75%; debe analizarse en la preparación de la renovación y negociación, sin inferir un ajuste de precio específico.' });
+  const renewalRows = own.filter(r => selected.includes(r.period));
+  const renewal = totals(renewalRows);
+  const canEstimate = selected.length > 0 && selected.every(p => renewalRows.some(r => r.period === p))
+    && renewal.premium > 0 && renewal.spend >= 0 && Number.isFinite(renewal.premium) && Number.isFinite(renewal.spend)
+    && renewalRows.every(r => Number.isFinite(r.premiumUf) && Number.isFinite(r.spendUf));
+  if (canEstimate) {
+    const consolidatedRatio = renewal.spend / renewal.premium * 100;
+    const adjustment = Math.round((consolidatedRatio - CONCLUSION_RULES.equilibrium) * 10) / 10;
+    const expectation = adjustment > 0
+      ? `se puede esperar un incremento técnico de ${fmt(adjustment)}% en la próxima renovación`
+      : adjustment < 0 ? `se puede esperar un descuento técnico de ${fmt(Math.abs(adjustment))}% en la próxima renovación`
+      : 'no se espera incremento ni descuento técnico en la próxima renovación por este cálculo';
+    sections.push({ title: 'Consideraciones para renovación', text: `En base a la siniestralidad consolidada Salud + Dental + Catastrófico del cliente en los meses seleccionados (${fmt(consolidatedRatio)}%), menos el 75% de siniestralidad de equilibrio, ${expectation}. Cálculo: ${fmt(consolidatedRatio)}% − 75% = ${fmt(adjustment)} puntos porcentuales, aplicados como porcentaje de ajuste técnico según esta regla.` });
+  } else {
+    sections.push({ title: 'Consideraciones para renovación', text: 'No se puede calcular el incremento o descuento técnico: se requiere información consolidada de primas en cada mes seleccionado, prima total positiva e importes válidos.' });
+  }
   return { month: v?.month ?? null, validityStart: v?.start ?? null, notes, sections };
 }

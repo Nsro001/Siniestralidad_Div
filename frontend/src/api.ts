@@ -5,7 +5,7 @@ const API_BASE = import.meta.env.DEV ? "/api" : import.meta.env.VITE_API_URL?.re
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
-async function request(path: string, init: RequestInit = {}) {
+async function request(path: string, init: RequestInit = {}, binary = false) {
   if (!supabase) throw new Error("El acceso aún no está configurado.");
   const { data: { session }, error } = await supabase.auth.getSession();
   if (error || !session) throw new ApiError(401, "Inicia sesión para continuar.");
@@ -17,6 +17,7 @@ async function request(path: string, init: RequestInit = {}) {
   } catch {
     throw new ApiError(0, "No se pudo conectar con el servidor. Comprueba que el backend esté activo y vuelve a intentar. Si estabas cargando una sábana, verifica si se guardó antes de repetir la carga.");
   }
+  if (response.ok && binary) return response.blob();
   const body = await response.json().catch(() => null);
   if (!response.ok) {
     if (response.status === 401) window.dispatchEvent(new Event("session-expired"));
@@ -34,6 +35,7 @@ export const fetchFilters = (): Promise<FiltersResponse> => request("/filters");
 const withQuery = (path: string, params: Record<string, string>) => `${path}?${new URLSearchParams(params)}`;
 export const fetchPrimasReport = (params: Record<string, string>) => request(withQuery("/report/primas", params));
 export const fetchGastosReport = (params: Record<string, string>) => request(withQuery("/report/gastos", params));
+export const downloadGastos = (params: Record<string, string>): Promise<Blob> => request(withQuery("/report/gastos/download", params), {}, true);
 export const fetchClaimantsReport = (params: Record<string, string>) => request(withQuery("/report/claimants", params));
 export const fetchMe = (): Promise<AccountProfile> => request("/me");
 export const fetchAccounts = (): Promise<AdminAccounts> => request("/admin/users");
