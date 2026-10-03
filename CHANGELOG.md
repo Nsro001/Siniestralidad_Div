@@ -72,3 +72,11 @@
 - Validación con el CSV actual: la comparación enero–octubre de 2025/2024 queda completa para INTERANDINA y JUANITO PEREZ. POOL TRIPER comienza en julio de 2024 y carece realmente de enero–junio de 2024.
 - Build backend y 25 tests aprobados, incluidas regresiones de doce meses, comparación anual, primas y renovación.
 - Es necesario volver a cargar el archivo tras desplegar: el cambio de parser no modifica los períodos ya persistidos. No requiere SQL nuevo.
+
+## 2026-10-01 — Conclusión ejecutiva y portada PDF
+- Conclusión final determinística con estado, tendencia, focos de gasto, riesgo y gestión; renovación solo desde mes 10 y con consolidado suficiente. Antes no usa el umbral 75% ni recomienda precios.
+- Mes de vigencia por calendario, con advertencias de estimación, meses faltantes y selección entre vigencias; banda cercana propuesta 73%–77%. Comparaciones y concentraciones sustentadas en los cálculos existentes.
+- Portada A4 con corredor, cliente, logos privados opcionales, período, fecha, KAM y firma NOERGON. Contenido desde página siguiente y conclusión al final; respeta secciones ocultas y elimina controles de impresión.
+- Configuración de nombre de corredora y logos por cliente en administración; nueva migración `202610010001_report_branding.sql`, tipos compartidos y endpoints protegidos.
+- Pruebas de reglas de negocio, casos insuficientes, logos y RLS; ampliadas pruebas HTTP para los endpoints nuevos. Migración y despliegue remoto pendientes; sin commit ni push.
+- Validación local: builds frontend/backend y TypeScript correctos; 33 tests aprobados (HTTP con puerto local habilitado). PDF sintético verificado en Chromium: portada página 1, resumen página 2, conclusión página 3, sin controles. Pendiente validación con logos y datos reales.

@@ -74,13 +74,15 @@ export async function getFilters(db: SupabaseClient) {
   }
   const coveragesByClient: Record<string, string[]> = Object.create(null);
   const periodsByClient: Record<string, string[]> = Object.create(null);
+  const premiumPeriodsByClient: Record<string, string[]> = Object.create(null);
   const activeClients = clients.filter(client => datasets.some(row => row.client_id === client.id));
   for (const client of activeClients) {
     const own = datasets.filter(row => row.client_id === client.id);
     const coverages = new Set<string>(own.filter(row => row.kind === "primas").flatMap(row => row.coverages));
     if (["Salud", "Dental", "Catastrófico"].some(coverage => coverages.has(coverage))) coverages.add("Consolidado S+D+C");
     coveragesByClient[client.name] = [...coverages].sort();
+    premiumPeriodsByClient[client.name] = [...new Set<string>(own.filter(row => row.kind === "primas").flatMap(row => row.periods))].sort();
     periodsByClient[client.name] = [...new Set<string>(own.flatMap(row => row.periods))].sort();
   }
-  return { clients: activeClients.map(row => row.name as string).sort(), coveragesByClient, periodsByClient };
+  return { clients: activeClients.map(row => row.name as string).sort(), coveragesByClient, periodsByClient, premiumPeriodsByClient };
 }

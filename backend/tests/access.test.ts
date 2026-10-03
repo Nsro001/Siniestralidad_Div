@@ -133,7 +133,7 @@ test("API: exige sesión, bloquea administración/carga y rechaza clientes ajeno
   const base = `http://127.0.0.1:${address.port}`;
   try {
     assert.equal((await fetch(`${base}/health`)).status, 200);
-    for (const path of ["/report/monthly", "/portfolio", "/filters", "/report/primas", "/report/gastos", "/report/claimants", "/admin/users", "/me"]) {
+    for (const path of ["/report/conclusion", "/report/branding", "/report/monthly", "/portfolio", "/filters", "/report/primas", "/report/gastos", "/report/claimants", "/admin/users", "/me"]) {
       assert.equal((await fetch(base + path)).status, 401, path);
       assert.equal((await fetch(base + path, {headers:{Authorization:"Bearer invalid"}})).status, 401, path);
     }
@@ -141,11 +141,12 @@ test("API: exige sesión, bloquea administración/carga y rechaza clientes ajeno
       const response = await fetch(base + path, {method:"POST", headers:{Authorization:"Bearer valid"}});
       assert.equal(response.status, 403, path);
     }
-    for (const kind of ["primas", "gastos", "claimants", "monthly"]) {
+    for (const kind of ["primas", "gastos", "claimants", "monthly", "conclusion", "branding"]) {
       const response = await fetch(`${base}/report/${kind}?client=Otro`, {headers:{Authorization:"Bearer valid"}});
       assert.equal(response.status, 403);
       assert.equal(response.headers.get("cache-control"), "no-store");
     }
+    assert.equal((await fetch(`${base}/admin/report-branding?client=Otro`, {method:"PUT", headers:{Authorization:"Bearer valid"}})).status, 403);
     assert.ok(queried);
     assert.equal((await fetch(`${base}/me`, {headers:{Authorization:"Bearer valid"}})).status, 200);
   } finally { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }

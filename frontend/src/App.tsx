@@ -1,6 +1,9 @@
+import ExecutiveConclusion from "./components/ExecutiveConclusion";
+import ReportCover from "./components/ReportCover";
+import type { ExecutiveConclusion as Conclusion, ReportBranding } from "../../shared/executive";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
-  fetchClaimantsReport,
+  fetchClaimantsReport, fetchConclusion, fetchBranding,
   fetchFilters,
   fetchGastosReport,
   fetchPrimasReport,
@@ -29,10 +32,10 @@ type ReportToggleSectionProps = {
 
 function ReportToggleSection({ title, checked, onToggle, disabled, children }: ReportToggleSectionProps) {
   return (
-    <div className="glass-panel rounded-3xl p-6 shadow-soft-xl">
+    <div className={`glass-panel rounded-3xl p-6 shadow-soft-xl ${!checked ? "no-print" : ""}`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-xl">{title}</h2>
-        <label className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-ink/60">
+        <label className="no-print flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-ink/60">
           <span>Mostrar</span>
           <input
             type="checkbox"
@@ -52,7 +55,7 @@ const getRolling12 = (periods: string[]) => [...periods].sort().slice(-12);
 
 const getCurrentValidity = (periods: string[]) => {
   const sorted = [...periods].sort();
-  if (sorted.length <= 12) return sorted;
+  if (!sorted.length) return sorted;
 
   const first = sorted[0];
   const latest = sorted[sorted.length - 1];
@@ -66,6 +69,11 @@ const getCurrentValidity = (periods: string[]) => {
 };
 
 export default function App({ profile, initialClient = "" }: { profile: AccountProfile; initialClient?: string }) {
+  const [conclusion, setConclusion] = useState<Conclusion | null>(null);
+  const [branding, setBranding] = useState<ReportBranding | null>(null);
+  const [brandingError, setBrandingError] = useState("");
+  const [generated, setGenerated] = useState(new Date());
+  const [printing, setPrinting] = useState(false);
   const [presenting, setPresenting] = useState(false);
   const [theme, setTheme] = useState("classic");
   const [premiumUploaded, setPremiumUploaded] = useState(false);
@@ -123,11 +131,12 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
     const periods = filters.periodsByClient[selectedClient] ?? [];
     setSelectedCoverages(coverages);
     setPeriodPreset("vigencia");
-    setSelectedPeriods(getCurrentValidity(periods));
+    setSelectedPeriods(getCurrentValidity(filters.premiumPeriodsByClient?.[selectedClient] ?? periods));
   }, [filters, selectedClient]);
 
   useEffect(() => {
     if (!selectedClient || selectedCoverages.length === 0 || selectedPeriods.length === 0) {
+      setConclusion(null);
       setPrimasReport(null);
       setGastosReport(null);
       setClaimantsReport(null);
@@ -141,15 +150,16 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
     };
 
     let cancelled = false;
-    setPrimasReport(null); setGastosReport(null); setClaimantsReport(null);
+    setConclusion(null); setPrimasReport(null); setGastosReport(null); setClaimantsReport(null);
     setError(null);
     Promise.all([
       fetchPrimasReport(params),
       fetchGastosReport(params),
-      fetchClaimantsReport(params),
+      fetchClaimantsReport(params), fetchConclusion(params),
     ])
-      .then(([primas, gastos, claimants]) => {
+      .then(([primas, gastos, claimants, finalConclusion]) => {
         if (cancelled) return;
+        setConclusion(finalConclusion);
         setPrimasReport(primas);
         setGastosReport(gastos);
         setClaimantsReport(claimants);
@@ -157,6 +167,29 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
       .catch((err) => { if (!cancelled) setError(err instanceof Error ? err.message : "Error al generar los reportes."); });
     return () => { cancelled = true; };
   }, [selectedClient, selectedCoverages, selectedPeriods, dataVersion]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setBranding(null); setBrandingError("");
+    if (selectedClient) fetchBranding(selectedClient).then(value => { if (!cancelled) setBranding(value); })
+      .catch(err => { if (!cancelled) setBrandingError(err.message); });
+    return () => { cancelled = true; };
+  }, [selectedClient, dataVersion]);
+  useEffect(() => {
+    const refresh = () => setGenerated(new Date());
+    window.addEventListener('beforeprint', refresh);
+    return () => window.removeEventListener('beforeprint', refresh);
+  }, []);
+  async function exportPdf() {
+    setPrinting(true); setError(null); setGenerated(new Date());
+    try {
+      await document.fonts.ready;
+      await Promise.all(Array.from(document.querySelectorAll<HTMLImageElement>('.report-cover img')).map(img => img.decode()));
+      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      window.print();
+    } catch { setError('No se pudo preparar la portada. Revisa los logos e intenta nuevamente.'); }
+    finally { setPrinting(false); }
+  }
 
   const availableCoverages = useMemo(
     () => (filters && selectedClient ? filters.coveragesByClient[selectedClient] ?? [] : []),
@@ -186,7 +219,7 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
 
   const applyPeriodPreset = (preset: Exclude<PeriodPreset, "custom">) => {
     setPeriodPreset(preset);
-    if (preset === "vigencia") setSelectedPeriods(getCurrentValidity(availablePeriods));
+    if (preset === "vigencia") setSelectedPeriods(getCurrentValidity(filters?.premiumPeriodsByClient?.[selectedClient] ?? availablePeriods));
     if (preset === "rolling12") setSelectedPeriods(getRolling12(availablePeriods));
     if (preset === "all") setSelectedPeriods([...availablePeriods].sort());
   };
@@ -210,6 +243,8 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
     if (visibleReports.topInsured) slides.push({ id: "insured", title: "Top asegurados", content: <TopInsuredTable report={gastosReport} /> });
   }
 
+  if (conclusion) slides.push({ id: "conclusion", title: "Conclusión ejecutiva", content: <ExecutiveConclusion conclusion={conclusion} /> });
+
   const presetButtonClass = (preset: PeriodPreset) =>
     `rounded-full border px-4 py-2 text-xs font-semibold transition ${
       periodPreset === preset
@@ -219,7 +254,7 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
 
   return (
     <div className="min-h-screen px-6 py-10 md:px-12">
-      <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
+      <header className="no-print mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-sm uppercase tracking-[0.3em] text-moss">Siniestralidad colectivos</p>
           <h1 className="font-display text-3xl md:text-4xl text-ink">Informe de Siniestralidad</h1>
@@ -238,7 +273,8 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
           </select>
           <button
             className="rounded-full border border-ink/20 bg-white/70 px-4 py-2 text-sm"
-            onClick={() => window.print()}
+            disabled={!conclusion || !branding || uploading || printing || !!error}
+            onClick={exportPdf}
           >
             Exportar PDF
           </button>
@@ -340,9 +376,10 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
           <span className={presetButtonClass("custom")}>Personalizado</span>
         </div>
         <p className="mt-3 text-xs text-ink/55">
-          La vigencia se estima usando como mes de renovación el primer mes disponible en la sábana de primas. Con los archivos actuales corresponde a noviembre 2024–octubre 2025.
+          La vigencia se estima usando como mes de renovación el primer mes disponible en la sábana de primas. Es una estimación y debe contrastarse con la vigencia contractual.
         </p>
         {error && <p className="mt-4 text-sm text-ember">{error}</p>}
+        {brandingError && <p role="alert" className="mt-4 text-sm text-ember">{brandingError} La exportación PDF requiere cargar la portada.</p>}
       </section>
 
       <section className="no-print account-ui report-view-controls mt-8" aria-label="Vista del reporte">
@@ -352,6 +389,7 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
       </section>
       {presenting && slides.length > 0 && <ReportPresentation slides={slides} client={selectedClient} periods={selectedPeriods} onClose={() => setPresenting(false)} />}
 
+      {branding && conclusion && <ReportCover client={selectedClient} periods={selectedPeriods} coverages={selectedCoverages} branding={branding} generated={generated} />}
       <div id="report-root" className="mt-10 space-y-10">
         <div className="print-only mb-6">
           <p className="text-sm uppercase tracking-[0.3em] text-moss">Informe de Siniestralidad</p>
@@ -420,6 +458,7 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
             <TopInsuredTable report={gastosReport} />
           </ReportToggleSection>
         )}
+        {conclusion && <ExecutiveConclusion conclusion={conclusion} />}
       </div>
     </div>
   );

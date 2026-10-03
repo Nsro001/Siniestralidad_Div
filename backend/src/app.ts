@@ -1,4 +1,6 @@
 import cors from "cors";
+import { buildConclusion } from "./conclusion.js";
+import { validateBranding } from "./branding.js";
 import { buildMonthlyDetail } from "./monthly.js";
 import { getPortfolio } from "./portfolio.js";
 import express, { type RequestHandler, type ErrorRequestHandler } from "express";
@@ -67,6 +69,34 @@ export function createApp(verifySession = authenticate) {
   app.get("/filters", asyncRoute(async (_req, res) => {
     const filters = await getFilters(res.locals.auth.db);
     res.json(filters);
+  }));
+
+  app.get("/report/conclusion", asyncRoute(async (req, res) => {
+    const client = String(req.query.client ?? "");
+    const allowed = await getClient(res.locals.auth.db, client);
+    const [premiums, expenses] = await Promise.all([
+      getRows<PremiumRow>(res.locals.auth.db, allowed.id, "primas"),
+      getRows<ExpenseRow>(res.locals.auth.db, allowed.id, "gastos"),
+    ]);
+    res.json(buildConclusion(premiums, expenses, client, String(req.query.coverages ?? ""), String(req.query.periods ?? "")));
+  }));
+  app.get("/report/branding", asyncRoute(async (req, res) => {
+    const db = res.locals.auth.db;
+    const client = await getClient(db, String(req.query.client ?? ""));
+    const [{ data, error }, kam] = await Promise.all([
+      db.from("report_branding").select("broker_name,broker_logo,client_logo").eq("client_id", client.id).maybeSingle(),
+      db.from("clients").select("kam_name").eq("id", client.id).single(),
+    ]);
+    if (error?.code === "42P01" || error?.code === "PGRST205") throw new HttpError(503, "Falta aplicar la migración 202610010001_report_branding.sql.");
+    databaseError(error); databaseError(kam.error);
+    res.json({ broker_name: "", broker_logo: null, client_logo: null, ...data, kam_name: kam.data?.kam_name || "Sin KAM registrado" });
+  }));
+  app.put("/admin/report-branding", adminOnly, asyncRoute(async (req, res) => {
+    const client = await getClient(res.locals.auth.db, String(req.query.client ?? ""));
+    const branding = validateBranding(req.body);
+    const { error } = await res.locals.auth.db.from("report_branding").upsert({ client_id: client.id, ...branding });
+    databaseError(error);
+    res.json({ status: "ok" });
   }));
 
   app.get("/report/monthly", asyncRoute(async (req, res) => {

@@ -45,3 +45,7 @@ export const updateAccount = (id: string, values: { full_name: string; active: b
 export const fetchPortfolio = (): Promise<Portfolio> => request("/portfolio");
 
 export const fetchMonthlyDetail = (params: { client: string; coverage: string; period: string }): Promise<import("../../shared/monthly").MonthlyDetail> => request(withQuery("/report/monthly", params));
+
+export const fetchConclusion = (params: Record<string, string>): Promise<import("../../shared/executive").ExecutiveConclusion> => request(withQuery("/report/conclusion", params));
+export const fetchBranding = (client: string): Promise<import("../../shared/executive").ReportBranding> => request(withQuery("/report/branding", { client }));
+export const saveBranding = (client: string, values: Omit<import("../../shared/executive").ReportBranding, "kam_name">) => request(withQuery("/admin/report-branding", { client }), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(values) });

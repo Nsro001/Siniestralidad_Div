@@ -1,3 +1,4 @@
+import ReportBrandingAdmin from "./ReportBrandingAdmin";
 import { useEffect, useState, type FormEvent } from "react";
 import { createAccount, fetchAccounts, updateAccount } from "../api";
 import type { AdminAccounts as Accounts, AccountProfile } from "../types";
@@ -62,6 +63,7 @@ export default function AdminAccounts() {
       <p className="account-muted mt-3">Crea cuentas de KAM y jefes. Vincúlalas al nombre correspondiente en la sábana para dar acceso a su cartera.</p>
       {error && <p role="alert" className="account-error mt-4">{error}</p>}
       {notice && <p role="status" className="account-success mt-4">{notice}</p>}
+      {data && <ReportBrandingAdmin clients={data.clients} />}
       <div className="accounts-grid mt-6">
         <section className="glass-panel account-card">
           <h2 className="font-display text-xl">Crear cuenta</h2>

@@ -2,6 +2,7 @@ export type FiltersResponse = {
   clients: string[];
   coveragesByClient: Record<string, string[]>;
   periodsByClient: Record<string, string[]>;
+  premiumPeriodsByClient?: Record<string, string[]>;
 };
 
 export type PrimasReport = {

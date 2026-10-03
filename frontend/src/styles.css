@@ -409,3 +409,26 @@ body {
 @media print {
   .expense-comparison-table { max-height: none; overflow: visible; }
 }
+
+.report-cover { color: #172f43; background: #fff; }
+.cover-logos { display: flex; justify-content: space-between; align-items: start; gap: 15mm; }
+.cover-logos > div { max-width: 48%; }
+.cover-logos img { max-width: 65mm; height: 25mm; object-fit: contain; object-position: left; }
+.cover-logos p { margin-top: 4mm; font-size: 12pt; }
+.cover-title { margin: 36mm 0 20mm; border-left: 2mm solid #2b6f8c; padding-left: 8mm; }
+.cover-title p { font-size: 23pt; }
+.cover-title h1 { font-size: 30pt; line-height: 1.2; margin: 7mm 0; overflow-wrap: anywhere; }
+.cover-title h2 { font-size: 15pt; }
+.report-cover dt { color: #526370; font-size: 10pt; margin-top: 6mm; }
+.report-cover dd { font-size: 13pt; overflow-wrap: anywhere; }
+.report-cover footer { margin-top: auto; padding-top: 10mm; border-top: 1px solid #cad4db; display: flex; gap: 4mm; align-items: baseline; }
+.report-cover footer span { font-size: 9pt; color: #526370; }
+.executive-conclusion p { line-height: 1.55; }
+@media print {
+  html, body { overflow: visible !important; height: auto !important; }
+  .report-cover.print-only { display: flex !important; flex-direction: column; min-height: 269mm; box-sizing: border-box; padding: 6mm; break-after: page; page-break-after: always; margin: 0; }
+  #report-root button, #report-root input, #report-root select { display: none !important; }
+  .executive-conclusion { break-before: page; color: #172f43; background: white; box-shadow: none; border: 0; padding: 5mm; font-size: 10pt; }
+  .conclusion-item { break-inside: avoid; }
+  .conclusion-notes { font-size: 8pt; color: #526370; }
+}

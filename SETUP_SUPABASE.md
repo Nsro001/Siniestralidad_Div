@@ -217,3 +217,11 @@ repetir la carga sustituye los datos, no los duplica. Staging incompleto y recib
 eliminan después de siete días al iniciar otra carga; los datos vigentes no se eliminan.
 Verificar con el archivo real los conteos, totales de UF y duración en Supabase tras aplicar
 la migración. La prueba sintética local no sustituye esa verificación.
+
+## Portada y logos por cliente (2026-10-01)
+
+Antes de desplegar esta versión, ejecutar una vez `supabase/migrations/202610010001_report_branding.sql` después de las migraciones anteriores. No requiere Storage ni claves nuevas. La tabla privada almacena logos PNG/JPEG pequeños como data URI; RLS permite leer solo los clientes autorizados y escribir solo a administradores activos.
+
+En **Usuarios y clientes → Portada del reporte por cliente**, seleccionar empresa, indicar corredora y cargar ambos logos (opcional, máximo 500 KiB cada uno). Guardar. El mismo corredor puede configurarse en varios clientes; esta versión no incorpora un catálogo compartido de corredoras. El KAM se obtiene de la cartera importada.
+
+Para verificar: abrir Reportes, seleccionar cliente/períodos, Exportar PDF y guardar como PDF en A4, escala 100%, sin encabezados/pies automáticos del navegador. Revisar portada en página 1, resumen en página 2 y conclusión como última sección. Probar meses 9 y 10: el primero no debe usar 75%; el segundo solo lo usa cuando el consolidado y los meses de vigencia están completos. Logos ausentes se omiten; KAM ausente se identifica como no registrado.
