@@ -228,6 +228,8 @@ const parseExpenseRows = (rows: Record<string, unknown>[]): ExpenseRow[] => {
   const clientNameKey = findHeaderKey(headers, ["Nombre Con", "Nombre Cliente", "Nombe Cliente"]);
   const periodKey = findHeaderKey(headers, ["PERIODO", "Periodo"]);
   const descKey = findHeaderKey(headers, ["Clasif.Cob"]);
+  const policyKey = findHeaderKey(headers, ["Póliza", "Número de póliza", "Nro. Póliza", "N° Póliza"]);
+  const prestationKey = findHeaderKey(headers, ["Desc.Cober", "Desc.Prest", "Prestación", "Descripción prestación"]);
   const reembolsoKey = findHeaderKey(headers, ["Reembolso"]);
   const planKey = findHeaderKey(headers, ["Desc.Plan"]);
   const providerKey = findHeaderKey(headers, ["Desc.Insti"]);
@@ -252,11 +254,13 @@ const parseExpenseRows = (rows: Record<string, unknown>[]): ExpenseRow[] => {
       const descCoberRaw = String(row[descKey] ?? "").trim();
       const patientBase = patientRutKey ? String(row[patientRutKey] ?? "").trim() : "";
       const patientDv = patientDvKey ? String(row[patientDvKey] ?? "").trim() : "";
-      return {
+      const expense: ExpenseRow = {
         clientName,
         period,
         coverage: coverageFromPlan(planKey ? row[planKey] : ""),
         descCober: descCoberRaw || "(Sin descripción)",
+        policy: policyKey ? String(row[policyKey] ?? "").trim() : "",
+        prestation: prestationKey ? String(row[prestationKey] ?? "").trim() : "",
         reembolsoUf: parseNumber(row[reembolsoKey]),
         provider: providerKey ? String(row[providerKey] ?? "").trim() || "(Sin prestador)" : "(Sin prestador)",
         insuredRut: insuredRutKey ? String(row[insuredRutKey] ?? "").trim() || "(Sin rut)" : "(Sin rut)",
@@ -267,6 +271,7 @@ const parseExpenseRows = (rows: Record<string, unknown>[]): ExpenseRow[] => {
         valBonif: valBonifKey ? parseNumber(row[valBonifKey]) : 0,
         mtoReclam: mtoReclamKey ? parseNumber(row[mtoReclamKey]) : 0,
       };
+      return expense;
     })
     .filter((row): row is ExpenseRow => row !== null);
 };

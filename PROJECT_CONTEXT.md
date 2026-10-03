@@ -1,5 +1,11 @@
 # Siniestralidad_Div - Contexto del proyecto
 
+## Póliza y detalle de prestaciones en descarga (2026-10-03)
+
+- La carga de gastos conserva `Poliza` y `Desc.Cober` como `policy` y `prestation`; admite encabezados normalizados de CSV, XLS y XLSX.
+- El Excel exporta Número de póliza como texto, Prestación con el detalle original y Clasificación de prestación desde `Clasif.Cob`. Los gráficos mantienen su clasificación existente.
+- No requiere migración SQL: se conservan los campos dentro de las filas JSON. Después de desplegar el backend, volver a cargar los originales para recuperar campos descartados por las cargas anteriores; el Excel avisa en Selección cuando detecta filas históricas sin estos campos.
+
 ## Descarga de gastos y cálculo técnico (2026-10-03)
 
 - Botón «Descargar sábana de gastos»: Excel con el detalle procesado almacenado, filtrado por cliente, meses exactos y coberturas seleccionadas. Incluye ceros, negativos y prestaciones excluidas de los gráficos; no recupera columnas originales descartadas durante la carga. Hoja adicional con la selección aplicada.

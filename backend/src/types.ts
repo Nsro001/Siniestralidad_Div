@@ -15,6 +15,8 @@ export type PremiumRow = {
 
 export type ExpenseRow = {
   clientName: string;
+  policy?: string;
+  prestation?: string;
   period: string; // YYYY-MM
   coverage: string;
   descCober: string;
