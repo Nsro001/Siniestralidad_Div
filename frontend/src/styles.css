@@ -495,3 +495,11 @@ body {
 .health-distribution-legend li > span:nth-child(2) { overflow-wrap:anywhere; }
 .health-legend-swatch { width:12px; height:12px; border-radius:3px; margin-top:4px; }
 .health-distribution-legend strong { font-variant-numeric:tabular-nums; }
+
+/* Keep interactive details outside the slide's fit-to-canvas transform. */
+.presentation-content { display:flex; flex-direction:column; align-items:center; gap:16px; }
+.presentation-content > div { flex-shrink:0; }
+.presentation-detail-host { width:100%; max-width:1280px; }
+.presentation-detail-host:empty { display:none; }
+.presentation-detail-host .monthly-detail { margin-top:0; max-height:55vh; overflow:auto; overscroll-behavior:contain; }
+.presentation-detail-host .portfolio-heading { position:sticky; top:-1.5rem; z-index:1; background:var(--panel-strong); padding-block:12px; }

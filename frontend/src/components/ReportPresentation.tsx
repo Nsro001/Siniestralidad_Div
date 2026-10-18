@@ -1,3 +1,4 @@
+import { PresentationDetailContext } from "./PresentationDetailContext";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import BrandLogo from "./BrandLogo";
 import { formatReportPeriods } from "../lib/reportPeriods";
@@ -30,6 +31,7 @@ export function ReportDeck({ slides, client, periods, branding }: { slides:Repor
 export default function ReportPresentation({ slides, client, periods, branding, onExport, onClose }: {
   slides: ReportSlide[]; client: string; periods: string[]; branding: ReportBranding; onExport: () => void; onClose: () => void;
 }) {
+  const [detailTarget, setDetailTarget] = useState<HTMLDivElement | null>(null);
   const [index, setIndex] = useState(0);
   const [zoom, setZoom] = useState(1);
   useEffect(() => {
@@ -81,12 +83,12 @@ export default function ReportPresentation({ slides, client, periods, branding, 
   useEffect(() => { content.current?.scrollTo({ top: 0 }); }, [current]);
   if (!slides.length) return null;
   const sorted = [...periods].sort();
-  return createPortal(<div ref={dialog} className="report-presentation account-ui no-print" role="dialog" aria-modal="true" aria-labelledby="presentation-title">
+  return createPortal(<PresentationDetailContext.Provider value={detailTarget}><div ref={dialog} className="report-presentation account-ui no-print" role="dialog" aria-modal="true" aria-labelledby="presentation-title">
     <header className="presentation-header">
       <div><p className="account-eyebrow">Presentación · {client}</p><h1 id="presentation-title" className="font-display text-2xl">{slides[current].title}</h1><p className="account-muted text-sm">{sorted[0]} a {sorted[sorted.length - 1]}</p></div>
       <button className="account-secondary" onClick={onExport}>Exportar PDF 16:9</button><button ref={closeButton} className="account-secondary" onClick={onClose}>Salir de presentación</button>
     </header>
-    <div ref={content} className="presentation-content"><div style={{width:1280*zoom,height:720*zoom}}><div style={{width:1280,transform:`scale(${zoom})`,transformOrigin:"top left"}}><SlideFrame slide={slides[current]} client={client} periods={periods} branding={branding} page={current+1} total={slides.length}/></div></div></div>
+    <div ref={content} className="presentation-content"><div style={{width:1280*zoom,height:720*zoom}}><div style={{width:1280,transform:`scale(${zoom})`,transformOrigin:"top left"}}><SlideFrame key={slides[current].id} slide={slides[current]} client={client} periods={periods} branding={branding} page={current+1} total={slides.length}/></div></div><div ref={setDetailTarget} className="presentation-detail-host" /></div>
     <nav className="presentation-controls" aria-label="Navegación de presentación">
       <button className="account-secondary" disabled={current === 0} onClick={() => setIndex(current - 1)}>← Anterior</button>
       <label><span className="sr-only">Ir a una tarjeta</span><select value={current} onChange={event => setIndex(Number(event.target.value))}>{slides.map((slide, position) => <option key={slide.id} value={position}>{position + 1}. {slide.title}</option>)}</select></label>
@@ -94,5 +96,5 @@ export default function ReportPresentation({ slides, client, periods, branding, 
       <button className="account-primary" disabled={current === slides.length - 1} onClick={() => setIndex(current + 1)}>Siguiente →</button>
       <span className="account-muted text-xs">← → para avanzar · Esc para salir</span>
     </nav>
-  </div>, document.body);
+  </div></PresentationDetailContext.Provider>, document.body);
 }

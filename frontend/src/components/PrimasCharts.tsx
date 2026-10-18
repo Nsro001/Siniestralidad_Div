@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { createPortal } from "react-dom";
+import { PresentationDetailContext } from "./PresentationDetailContext";
+import { useContext, useState } from "react";
 import { formatReportMonth, formatReportPeriods } from "../lib/reportPeriods";
 import MonthlyDetailPanel from "./MonthlyDetailPanel";
 import {
@@ -21,6 +23,7 @@ type Props = {
 };
 
 export default function PrimasCharts({ report, client }: Props) {
+  const detailTarget = useContext(PresentationDetailContext);
   const [selected, setSelected] = useState<{ coverage: string; period: string } | null>(null);
   if (report.series.length === 0) {
     return (
@@ -120,7 +123,9 @@ export default function PrimasCharts({ report, client }: Props) {
                 <option value="">Selecciona un mes</option>{coverage.series.map(row => <option key={row.period} value={row.period}>{row.period}</option>)}
               </select>
             </label></div>
-            {selected?.coverage === coverage.coverage && coverage.series.some(row => row.period === selected.period) && <MonthlyDetailPanel key={`${client}-${selected.coverage}-${selected.period}`} client={client} coverage={selected.coverage} period={selected.period} onClose={() => setSelected(null)} />}
+            {selected?.coverage === coverage.coverage && coverage.series.some(row => row.period === selected.period) && (detailTarget ? createPortal(
+              <MonthlyDetailPanel key={`${client}-${selected.coverage}-${selected.period}`} client={client} coverage={selected.coverage} period={selected.period} onClose={() => setSelected(null)} />, detailTarget
+            ) : <MonthlyDetailPanel key={`${client}-${selected.coverage}-${selected.period}`} client={client} coverage={selected.coverage} period={selected.period} onClose={() => setSelected(null)} />)}
           </div>
         );
       })}
