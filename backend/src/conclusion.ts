@@ -91,7 +91,7 @@ export function buildConclusion(premiums: PremiumRow[], expenses: ExpenseRow[], 
   const canEstimate = selected.length > 0 && selected.every(p => renewalRows.some(r => r.period === p))
     && renewal.premium > 0 && renewal.spend >= 0 && Number.isFinite(renewal.premium) && Number.isFinite(renewal.spend)
     && renewalRows.every(r => Number.isFinite(r.premiumUf) && Number.isFinite(r.spendUf));
-  if (canEstimate) {
+  if (canEstimate && v && v.month >= 10 && fullValidity && !missingCov.length) {
     const consolidatedRatio = renewal.spend / renewal.premium * 100;
     const adjustment = Math.round((consolidatedRatio - CONCLUSION_RULES.equilibrium) * 10) / 10;
     const expectation = adjustment > 0
@@ -100,7 +100,7 @@ export function buildConclusion(premiums: PremiumRow[], expenses: ExpenseRow[], 
       : 'no se espera incremento ni descuento técnico en la próxima renovación por este cálculo';
     sections.push({ title: 'Consideraciones para renovación', text: `En base a la siniestralidad consolidada Salud + Dental + Catastrófico del cliente en los meses seleccionados (${fmt(consolidatedRatio)}%), menos el 75% de siniestralidad de equilibrio, ${expectation}. Cálculo: ${fmt(consolidatedRatio)}% − 75% = ${fmt(adjustment)} puntos porcentuales, aplicados como porcentaje de ajuste técnico según esta regla.` });
   } else {
-    sections.push({ title: 'Consideraciones para renovación', text: 'No se puede calcular el incremento o descuento técnico: se requiere información consolidada de primas en cada mes seleccionado, prima total positiva e importes válidos.' });
+    sections.push({ title: 'Consideraciones para renovación', text: 'No se puede calcular el incremento o descuento técnico en esta selección. La referencia de equilibrio de renovación se evalúa desde el mes 10 estimado, con vigencia continua, primas válidas e información consolidada suficiente. Antes de ese corte, priorizar tendencias y seguimiento del gasto.' });
   }
   return { month: v?.month ?? null, validityStart: v?.start ?? null, notes, sections };
 }

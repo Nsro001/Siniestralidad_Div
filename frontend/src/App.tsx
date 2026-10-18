@@ -10,7 +10,7 @@ import {
   uploadFile,
 } from "./api";
 import { AccountProfile, ClaimantsReport, FiltersResponse, GastosReport, PrimasReport } from "./types";
-import ReportPresentation, { type ReportSlide } from "./components/ReportPresentation";
+import ReportPresentation, { ReportDeck, type ReportSlide } from "./components/ReportPresentation";
 import ExecutiveSummary from "./components/ExecutiveSummary";
 import GastosDistribution from "./components/GastosDistribution";
 import PrimasCharts from "./components/PrimasCharts";
@@ -202,7 +202,7 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
     setPrinting(true); setError(null); setGenerated(new Date());
     try {
       await document.fonts.ready;
-      await Promise.all(Array.from(document.querySelectorAll<HTMLImageElement>('.report-cover img')).map(img => img.decode()));
+      await Promise.all(Array.from(document.querySelectorAll<HTMLImageElement>('.pdf-deck img')).map(img => img.decode()));
       await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
       window.print();
     } catch { setError('No se pudo preparar la portada. Revisa los logos e intenta nuevamente.'); }
@@ -247,6 +247,7 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
   };
 
   const slides: ReportSlide[] = [];
+  if (branding) slides.push({id:"cover",title:"Informe de siniestralidad",content:<ReportCover client={selectedClient} periods={selectedPeriods} coverages={selectedCoverages} branding={branding} generated={generated}/>});
   if (primasReport) {
     slides.push({ id: "summary", title: "Resumen ejecutivo", content: <ExecutiveSummary report={primasReport} claimants={claimantsReport} periods={selectedPeriods} /> });
     if (visibleReports.primas) primasReport.series.forEach(coverage => {
@@ -261,7 +262,10 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
     if (visibleReports.topInsured) slides.push({ id: "insured", title: "Top asegurados", content: <TopInsuredTable report={gastosReport} /> });
   }
 
-  if (conclusion) slides.push({ id: "conclusion", title: "Conclusión ejecutiva", content: <ExecutiveConclusion conclusion={conclusion} /> });
+  if (conclusion) {
+    for (let i=0;i<conclusion.sections.length;i+=2) slides.push({id:`conclusion-${i}`,title:`Conclusión ejecutiva · ${i/2+1}`,content:<ExecutiveConclusion conclusion={{...conclusion,sections:conclusion.sections.slice(i,i+2),notes:[]}}/>});
+    slides.push({id:"conclusion-notes",title:"Alcance y calidad de la información",content:<ExecutiveConclusion conclusion={{...conclusion,sections:[],notes:conclusion.notes}}/>});
+  }
 
   const presetButtonClass = (preset: PeriodPreset) =>
     `rounded-full border px-4 py-2 text-xs font-semibold transition ${
@@ -409,11 +413,12 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
       <section className="no-print account-ui report-view-controls mt-8" aria-label="Vista del reporte">
         <div><h2 className="font-display text-xl">Presentar al cliente</h2><p className="account-muted text-sm">Selecciona las tarjetas con Mostrar. La presentación respeta esa selección y separa cada cobertura.</p></div>
         <button className="account-secondary" onClick={() => setVisibleReports({ primas: true, gastosDistribution: true, systemHealth: true, healthByPrestation: true, topProviders: true, topInsured: true })}>Mostrar todas</button>
-        <button className="account-primary" disabled={!slides.length || !!error || uploading} onClick={() => setPresenting(true)}>Modo presentación</button>
+        <button className="account-primary" disabled={!slides.length || !branding || !conclusion || !!error || uploading} onClick={() => setPresenting(true)}>Modo presentación</button>
       </section>
-      {presenting && slides.length > 0 && <ReportPresentation slides={slides} client={selectedClient} periods={selectedPeriods} onClose={() => setPresenting(false)} />}
+      {branding && conclusion && <ReportDeck slides={slides} client={selectedClient} periods={selectedPeriods} branding={branding}/>}
+      {presenting && branding && slides.length > 0 && <ReportPresentation branding={branding} onExport={exportPdf} slides={slides} client={selectedClient} periods={selectedPeriods} onClose={() => setPresenting(false)} />}
 
-      {branding && conclusion && <ReportCover client={selectedClient} periods={selectedPeriods} coverages={selectedCoverages} branding={branding} generated={generated} />}
+      {branding && conclusion && <div className="legacy-cover print-only"><ReportCover client={selectedClient} periods={selectedPeriods} coverages={selectedCoverages} branding={branding} generated={generated} /></div>}
       <div id="report-root" className="mt-10 space-y-10">
         <div className="print-only mb-6">
           <p className="text-sm uppercase tracking-[0.3em] text-moss">Informe de Siniestralidad</p>

@@ -15,7 +15,7 @@ test('branding RLS: admin escribe, cliente asignado lee, ajenos e inactivos no a
    create table auth.users(id uuid primary key,email text,raw_user_meta_data jsonb);
    create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
    grant usage on schema auth,public to authenticated,anon; grant execute on function auth.uid() to authenticated,anon;`);
-  for(const f of ['202609060001_accounts.sql','202609170001_portfolio.sql','202610010001_report_branding.sql']) await db.exec(await readFile(new URL(`../../supabase/migrations/${f}`,import.meta.url),'utf8'));
+  for(const f of ['202609060001_accounts.sql','202609170001_portfolio.sql','202610010001_report_branding.sql','202610160001_presentation_branding.sql']) await db.exec(await readFile(new URL(`../../supabase/migrations/${f}`,import.meta.url),'utf8'));
   const admin='00000000-0000-4000-8000-000000000001',exec='00000000-0000-4000-8000-000000000002';
   const a='10000000-0000-4000-8000-000000000001',b='10000000-0000-4000-8000-000000000002';
   await db.query("insert into auth.users values ($1,'a','{}'),($2,'e','{}')",[admin,exec]);
@@ -33,4 +33,14 @@ test('branding RLS: admin escribe, cliente asignado lee, ajenos e inactivos no a
   await asUser(exec);assert.equal((await db.query('select * from report_branding')).rows.length,0);
   await db.exec('set role anon');await assert.rejects(db.query('select * from report_branding'),/permission denied/);
  } finally {await db.close();}
+});
+
+test('logos interiores: dimensiones verificadas en servidor y MIME coherente',()=>{
+ const b=Buffer.alloc(24);Buffer.from([137,80,78,71,13,10,26,10]).copy(b);b.write('IHDR',12);b.writeUInt32BE(100,16);b.writeUInt32BE(50,20);
+ const body={broker_name:'',broker_logo:null,client_logo:null,interior_logo:'data:image/png;base64,'+b.toString('base64')};
+ assert.equal(validateBranding(body).interior_logo,body.interior_logo);
+ b.writeUInt32BE(4097,16);assert.throws(()=>validateBranding({...body,interior_logo:'data:image/png;base64,'+b.toString('base64')}));
+ assert.throws(()=>validateBranding({...body,interior_logo:body.interior_logo.replace('image/png','image/webp')}));
+ const w=Buffer.alloc(30);w.write('RIFF');w.write('WEBP',8);w.write('VP8X',12);w.writeUIntLE(99,24,3);w.writeUIntLE(49,27,3);
+ assert.ok(validateBranding({...body,interior_logo:'data:image/webp;base64,'+w.toString('base64')}));
 });

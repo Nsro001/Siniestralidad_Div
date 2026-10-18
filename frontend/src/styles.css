@@ -37,7 +37,7 @@
   --panel-strong: #30323a;
   --panel-border: rgba(255, 255, 255, 0.08);
   --ink: #111214;
-  --sand: #1e1f24;
+  --sand: #f3f4f6;
   --moss: #64d2ff;
   --ember: #f4a261;
   --ocean: #2ec4b6;
@@ -139,6 +139,7 @@ body {
   color: var(--muted) !important;
 }
 
+.text-ink\/55,
 .text-ink\/60 {
   color: var(--muted-2) !important;
 }
@@ -382,7 +383,7 @@ body {
 .portfolio-table th { color: var(--muted); font-size: .75rem; font-weight: 500; }
 .portfolio-table th, .portfolio-table td { padding: 1rem .6rem; border-bottom: 1px solid var(--panel-border); vertical-align: top; }
 .portfolio-table td:nth-child(3), .portfolio-table td:nth-child(4) { white-space: nowrap; font-variant-numeric: tabular-nums; }
-.account-ui .portfolio-link { padding: 0; text-align: left; font-weight: 600; color: #2b6f8c; }
+.account-ui .portfolio-link { padding: 0; text-align: left; font-weight: 600; color: var(--ocean); }
 .portfolio-link:hover { text-decoration: underline; }
 .portfolio-insured { display: grid; gap: .2rem; margin-bottom: .65rem; min-width: 10rem; font-size: .8rem; }
 .portfolio-insured span { color: var(--muted); }
@@ -432,3 +433,59 @@ body {
   .conclusion-item { break-inside: avoid; }
   .conclusion-notes { font-size: 8pt; color: #526370; }
 }
+
+/* Executive deck: a fixed design canvas shared by screen and PDF. */
+.brand-default { display: block; width: 420px; height: 145px; background: url('/noergon-brand.png') 2% 50% / 206% auto no-repeat; }
+.brand-default.brand-interior { width: 260px; height: 88px; background-position: 99% 50%; }
+.brand-custom { width: 260px; height: 88px; object-fit: contain; }
+.report-slide { --text:#173441; --muted:#526370; --muted-2:#526370; --moss:#42634d; --ember:#a54b21; --bg:#f1f7f8; --ink:#173441; --sand:#f1f7f8; --panel:#fff; --panel-strong:#fff; --panel-border:#dce7eb; --ocean:#007f91; --chart-1:#006780; --chart-2:#00b6a5; --chart-3:#173441; --chart-4:#53a4c3; --chart-5:#88cfc4; --chart-6:#627f92; color:#173441; background:#fff; width:1280px; height:720px; box-sizing:border-box; padding:28px 48px 20px; display:flex; flex-direction:column; gap:18px; font-family:Arial,sans-serif; }
+.slide-heading { display:flex; align-items:center; justify-content:space-between; gap:24px; border-bottom:1px solid #dce7eb; padding-bottom:12px; }
+.slide-heading p { color:#607987; font-size:13px; margin-bottom:6px; }
+.slide-heading h2 { font-size:28px; font-weight:700; }
+.slide-body { flex:1; min-height:0; overflow:hidden; }
+.slide-body > div { width:100%; }
+.slide-cover .slide-body > div { height:100%; }
+.slide-footer { display:flex; justify-content:space-between; color:#607987; font-size:12px; border-top:1px solid #dce7eb; padding-top:12px; }
+.report-slide .glass-panel { background:white; border-color:#dce7eb; box-shadow:none; border-radius:12px; }
+.report-slide .h-64 { height:290px; }
+.report-slide .account-form { display:none; }
+.report-slide .executive-indicators { margin:12px auto; gap:32px; }
+.report-slide .executive-circle { width:110px; }
+.report-slide .executive-conclusion h2 { display:none; }
+.report-slide .conclusion-item { padding:18px 22px; background:#f1f7f8; border-left:4px solid #00b6a5; font-size:18px; line-height:1.55; }
+.report-slide .conclusion-notes p { margin:12px 0; line-height:1.5; }
+.report-slide .report-cover { display:flex; flex-direction:column; height:100%; min-height:0; padding:12px 20px; background:radial-gradient(ellipse at 100% 100%,#d8f5ef,transparent 65%),white; }
+.report-slide .cover-logos { display:flex; justify-content:space-between; align-items:center; }
+.report-slide .cover-logos img { width:auto; height:120px; max-width:100%; object-fit:contain; }
+.report-slide .cover-logos .brand-custom { width:360px; }
+.report-slide .cover-title { margin:24px 0; padding-left:24px; border-left:6px solid #00b6a5; }
+.report-slide .cover-title p { font-size:32px; font-weight:700; text-transform:uppercase; letter-spacing:2px; }
+.report-slide .cover-title h1 { font-size:44px; margin:10px 0; }
+.report-slide .cover-title h2 { font-size:20px; color:#007f91; }
+.report-slide .report-cover dl { display:grid; grid-template-columns:180px 1fr; gap:12px 24px; padding-left:30px; }
+.report-slide .report-cover dt { font-size:14px; margin:0; }
+.report-slide .report-cover dd { font-size:18px; }
+.report-slide .report-cover footer { padding-top:18px; font-size:12px; }
+.presentation-content { display:grid; place-items:start center; background:#dce7eb; padding:24px; }
+.presentation-content > .report-slide { margin:0; flex-shrink:0; box-shadow:0 20px 60px #17344126; }
+.pdf-deck { position:absolute; left:-20000px; top:0; width:1280px; visibility:hidden; pointer-events:none; }
+@page { size:338.6667mm 190.5mm; margin:0; }
+@media print {
+  body { margin:0 !important; print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+  body:has(.pdf-deck) #root *:not(:has(.pdf-deck)):not(.pdf-deck):not(.pdf-deck *) { display:none !important; }
+  body:has(.pdf-deck) #root, #root *:has(.pdf-deck) { display:block !important; margin:0 !important; padding:0 !important; min-height:0 !important; }
+  .pdf-deck { position:static; visibility:visible; pointer-events:auto; }
+  .pdf-deck * { visibility:visible; }
+  .pdf-deck .report-slide { break-after:page; page-break-after:always; margin:0; }
+  .pdf-deck .report-slide:last-child { break-after:auto; page-break-after:auto; }
+  .pdf-deck .report-cover { display:flex !important; }
+  .pdf-deck .glass-panel { break-inside:auto; }
+  .legacy-cover, .report-presentation { display:none !important; }
+}
+
+/* Theme-aware chart labels and tooltip surfaces. */
+.recharts-cartesian-axis-tick-value { fill: var(--muted); }
+.recharts-default-tooltip { background-color: var(--panel-strong) !important; border-color: var(--panel-border) !important; color: var(--text); }
+.recharts-tooltip-label { color: var(--text); }
+.recharts-tooltip-item { color: var(--text) !important; }
+[data-theme="oscuro"] .presentation-content { background:#151c24; }

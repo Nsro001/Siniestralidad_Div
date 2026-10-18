@@ -13,8 +13,8 @@ test('mes de vigencia usa calendario, aniversarios y selección histórica, no c
  assert.equal(validity(['2024-11','2025-08','2025-11'],['2024-11','2025-11'])?.mixed,true);
  assert.equal(validity([],['2025-01']),null);
 });
-test('renovación calcula incremento, descuento y equilibrio para cualquier mes',()=>{
- for (const n of [1, 9, 10, 12]) {
+test('renovación calcula incremento, descuento y equilibrio desde el mes 10',()=>{
+ for (const n of [10, 12]) {
   for (const [spend, expected] of [[92.6, /incremento técnico de 17,6%/], [68, /descuento técnico de 7%/], [75, /no se espera incremento ni descuento/]] as const) {
    assert.match(conclusion(n, spend).sections.at(-1)!.text, expected);
   }
@@ -25,7 +25,7 @@ test('renovación usa el consolidado del cliente y exactamente los meses selecci
  p.push(...premiums(3,999).map(r=>({...r,clientName:'B'})));
  p.push({...p[0],coverage:'Consolidado S+D+C',spendUf:9999});
  const r=buildConclusion(p,[],'A','Salud','2025-01,2025-03');
- assert.match(r.sections.at(-1)!.text,/incremento técnico de 5%/);
+ assert.match(r.sections.at(-1)!.text,/No se puede calcular/);
 });
 test('renovación no estima con prima cero o meses sin primas',()=>{
  for(const rows of [premiums(2).map(r=>({...r,premiumUf:0})),premiums(1)]) {
@@ -45,11 +45,25 @@ test('pondera prima y gasto sin duplicar consolidado; detecta tendencia y concen
  assert.match(r.sections[2].text,/asegurados identificados/);
  assert.match(r.sections[3].text,/Riesgo creciente/);
  assert.match(r.sections[4].text,/casos de mayor gasto/);
- assert.match(r.sections.at(-1)!.text,/descuento técnico de 20%/);
+ assert.match(r.sections.at(-1)!.text,/No se puede calcular/);
 });
 test('identificadores ausentes no se interpretan como un prestador o asegurado concentrado',()=>{
  const e:ExpenseRow={clientName:'A',period:'2025-01',coverage:'Salud',reembolsoUf:100,descCober:'CONSULTAS',provider:'(Sin prestador)',insuredRut:'(Sin rut)',patientRut:'',relation:'',isapre:'',valPrest:0,valBonif:0,mtoReclam:0};
  const r=buildConclusion(premiums(1),[e],'A','Consolidado S+D+C','2025-01');
  assert.match(r.sections[2].text,/Sin identificación suficiente de asegurados/);
  assert.match(r.sections[2].text,/Sin identificación suficiente de prestadores/);
+});
+
+test('meses 1 a 9 no recomiendan tarifa aunque superen el 75%',()=>{
+ for (const n of [1,9]) {
+  const r=conclusion(n,120);
+  assert.doesNotMatch(r.sections.map(s=>s.text).join(' '),/incremento técnico de|descuento técnico de|75%/);
+  assert.match(r.sections.at(-1)!.text,/desde el mes 10/);
+ }
+});
+test('mes 10 con huecos o coberturas incompletas requiere revisión',()=>{
+ for(const rows of [premiums(10).filter(r=>r.coverage!=='Dental'),premiums(10).filter(r=>r.period!=='2025-05')]) {
+  const r=buildConclusion(rows,[],'A','Consolidado S+D+C',periods(10).join(','));
+  assert.match(r.sections.at(-1)!.text,/No se puede calcular/);
+ }
 });

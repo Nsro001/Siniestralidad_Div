@@ -85,12 +85,12 @@ export function createApp(verifySession = authenticate) {
     const db = res.locals.auth.db;
     const client = await getClient(db, String(req.query.client ?? ""));
     const [{ data, error }, kam] = await Promise.all([
-      db.from("report_branding").select("broker_name,broker_logo,client_logo").eq("client_id", client.id).maybeSingle(),
+      db.from("report_branding").select("broker_name,broker_logo,client_logo,interior_logo").eq("client_id", client.id).maybeSingle(),
       db.from("clients").select("kam_name").eq("id", client.id).single(),
     ]);
     if (error?.code === "42P01" || error?.code === "PGRST205") throw new HttpError(503, "Falta aplicar la migración 202610010001_report_branding.sql.");
     databaseError(error); databaseError(kam.error);
-    res.json({ broker_name: "", broker_logo: null, client_logo: null, ...data, kam_name: kam.data?.kam_name || "Sin KAM registrado" });
+    res.json({ broker_name: "", broker_logo: null, client_logo: null, interior_logo: null, ...data, kam_name: kam.data?.kam_name || "Sin KAM registrado" });
   }));
   app.put("/admin/report-branding", adminOnly, asyncRoute(async (req, res) => {
     const client = await getClient(res.locals.auth.db, String(req.query.client ?? ""));
