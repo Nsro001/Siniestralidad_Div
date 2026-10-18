@@ -43,7 +43,7 @@ export default function HealthByPrestationReport({ report }: Props) {
               fill="var(--chart-1)"
               radius={[4, 4, 0, 0]}
             >
-              <LabelList dataKey="bonifHealthPercentDisplay" position="center" fill="#ffffff" fontSize={20} fontWeight={700} stroke="#173441" strokeWidth={0.8} paintOrder="stroke" formatter={(value: number) => `${value.toFixed(0)}%`} />
+              <LabelList dataKey="bonifHealthPercentDisplay" position="center" fill="#ffffff" fontSize={16} fontWeight={600} stroke="#173441" strokeWidth={0.8} paintOrder="stroke" formatter={(value: number) => `${value.toFixed(0)}%`} />
             </Bar>
             <Bar
               dataKey="bonifSeguroPercentDisplay"
@@ -52,7 +52,7 @@ export default function HealthByPrestationReport({ report }: Props) {
               fill="var(--chart-2)"
               radius={[0, 0, 0, 0]}
             >
-              <LabelList dataKey="bonifSeguroPercentDisplay" position="center" fill="#ffffff" fontSize={20} fontWeight={700} stroke="#173441" strokeWidth={0.8} paintOrder="stroke" formatter={(value: number) => `${value.toFixed(0)}%`} />
+              <LabelList dataKey="bonifSeguroPercentDisplay" position="center" fill="#ffffff" fontSize={16} fontWeight={600} stroke="#173441" strokeWidth={0.8} paintOrder="stroke" formatter={(value: number) => `${value.toFixed(0)}%`} />
             </Bar>
             <Bar
               dataKey="copagoUsuarioPercentDisplay"
@@ -61,7 +61,7 @@ export default function HealthByPrestationReport({ report }: Props) {
               fill="var(--chart-3)"
               radius={[0, 0, 4, 4]}
             >
-              <LabelList dataKey="copagoUsuarioPercentDisplay" position="center" fill="#ffffff" fontSize={20} fontWeight={700} stroke="#173441" strokeWidth={0.8} paintOrder="stroke" formatter={(value: number) => `${value.toFixed(0)}%`} />
+              <LabelList dataKey="copagoUsuarioPercentDisplay" position="center" fill="#ffffff" fontSize={16} fontWeight={600} stroke="#173441" strokeWidth={0.8} paintOrder="stroke" formatter={(value: number) => `${value.toFixed(0)}%`} />
             </Bar>
           </BarChart>
         </ResponsiveContainer>
