@@ -49,33 +49,15 @@ export default function SystemHealthReport({ report }: Props) {
     <div className="grid gap-6 lg:grid-cols-2">
       <div className="glass-panel rounded-3xl p-6 shadow-soft-xl">
         <h2 className="font-display text-xl">Distribución del sistema de salud</h2>
-        <div className="mt-4 h-80">
+        <div className="mt-4 h-48">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={isapreData}
                 dataKey="percent"
                 nameKey="isapre"
-                outerRadius={110}
-                label={({ cx, cy, midAngle, outerRadius, index }) => {
-                  const RAD = Math.PI / 180;
-                  const radius = outerRadius + 12;
-                  const x = cx + radius * Math.cos(-midAngle * RAD);
-                  const y = cy + radius * Math.sin(-midAngle * RAD);
-                  const item = isapreData[index ?? 0];
-                  if (!item) return null;
-                  return (
-                    <text
-                      x={x}
-                      y={y}
-                      textAnchor={x > cx ? "start" : "end"}
-                      fill="var(--text)"
-                      fontSize={9}
-                    >
-                      {`${item.isapre} ${item.percent.toFixed(1)}%`}
-                    </text>
-                  );
-                }}
+                outerRadius={85}
+                label={false}
                 labelLine={false}
               >
                 {isapreData.map((_, index) => (
@@ -86,6 +68,13 @@ export default function SystemHealthReport({ report }: Props) {
             </PieChart>
           </ResponsiveContainer>
         </div>
+        <ul className="health-distribution-legend" aria-label="Distribución por sistema de salud">
+          {isapreData.map((item, index) => <li key={`${item.isapre}-${index}`}>
+            <span className="health-legend-swatch" style={{ backgroundColor: palette[index % palette.length] }} aria-hidden="true" />
+            <span>{item.isapre}</span>
+            <strong>{item.percent.toFixed(1)}%</strong>
+          </li>)}
+        </ul>
       </div>
 
       <div className="glass-panel rounded-3xl p-6 shadow-soft-xl">

@@ -489,3 +489,9 @@ body {
 .recharts-tooltip-label { color: var(--text); }
 .recharts-tooltip-item { color: var(--text) !important; }
 [data-theme="oscuro"] .presentation-content { background:#151c24; }
+
+.health-distribution-legend { display:grid; gap:8px; margin-top:12px; font-size:14px; line-height:1.4; }
+.health-distribution-legend li { display:grid; grid-template-columns:12px minmax(0,1fr) max-content; align-items:start; gap:10px; }
+.health-distribution-legend li > span:nth-child(2) { overflow-wrap:anywhere; }
+.health-legend-swatch { width:12px; height:12px; border-radius:3px; margin-top:4px; }
+.health-distribution-legend strong { font-variant-numeric:tabular-nums; }

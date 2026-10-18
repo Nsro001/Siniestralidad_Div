@@ -32,8 +32,8 @@ export default function HealthByPrestationReport({ report }: Props) {
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} barCategoryGap={12}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e0d7" />
-            <XAxis dataKey="prestation" tick={{ fontSize: 9 }} angle={-30} textAnchor="end" height={60} />
-            <YAxis tickFormatter={(value: number) => `${value.toFixed(0)}%`} tick={{ fontSize: 10 }} />
+            <XAxis dataKey="prestation" tick={{ fontSize: 14 }} angle={-30} textAnchor="end" height={75} />
+            <YAxis tickFormatter={(value: number) => `${value.toFixed(0)}%`} tick={{ fontSize: 14 }} />
             <Tooltip formatter={(value: number) => `${value.toFixed(1)}%`} />
             <Legend />
             <Bar
@@ -43,7 +43,7 @@ export default function HealthByPrestationReport({ report }: Props) {
               fill="var(--chart-1)"
               radius={[4, 4, 0, 0]}
             >
-              <LabelList dataKey="bonifHealthPercentDisplay" position="center" fill="#ffffff" fontSize={9} formatter={(value: number) => `${value.toFixed(0)}%`} />
+              <LabelList dataKey="bonifHealthPercentDisplay" position="center" fill="#ffffff" fontSize={20} fontWeight={700} stroke="#173441" strokeWidth={0.8} paintOrder="stroke" formatter={(value: number) => `${value.toFixed(0)}%`} />
             </Bar>
             <Bar
               dataKey="bonifSeguroPercentDisplay"
@@ -52,7 +52,7 @@ export default function HealthByPrestationReport({ report }: Props) {
               fill="var(--chart-2)"
               radius={[0, 0, 0, 0]}
             >
-              <LabelList dataKey="bonifSeguroPercentDisplay" position="center" fill="#ffffff" fontSize={9} formatter={(value: number) => `${value.toFixed(0)}%`} />
+              <LabelList dataKey="bonifSeguroPercentDisplay" position="center" fill="#ffffff" fontSize={20} fontWeight={700} stroke="#173441" strokeWidth={0.8} paintOrder="stroke" formatter={(value: number) => `${value.toFixed(0)}%`} />
             </Bar>
             <Bar
               dataKey="copagoUsuarioPercentDisplay"
@@ -61,7 +61,7 @@ export default function HealthByPrestationReport({ report }: Props) {
               fill="var(--chart-3)"
               radius={[0, 0, 4, 4]}
             >
-              <LabelList dataKey="copagoUsuarioPercentDisplay" position="center" fill="#ffffff" fontSize={9} formatter={(value: number) => `${value.toFixed(0)}%`} />
+              <LabelList dataKey="copagoUsuarioPercentDisplay" position="center" fill="#ffffff" fontSize={20} fontWeight={700} stroke="#173441" strokeWidth={0.8} paintOrder="stroke" formatter={(value: number) => `${value.toFixed(0)}%`} />
             </Bar>
           </BarChart>
         </ResponsiveContainer>
