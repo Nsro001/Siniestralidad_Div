@@ -503,3 +503,9 @@ body {
 .presentation-detail-host:empty { display:none; }
 .presentation-detail-host .monthly-detail { margin-top:0; max-height:55vh; overflow:auto; overscroll-behavior:contain; }
 .presentation-detail-host .portfolio-heading { position:sticky; top:-1.5rem; z-index:1; background:var(--panel-strong); padding-block:12px; }
+
+/* Use the landscape canvas for the comparison table and its chart. */
+.report-slide .expense-distribution { grid-template-columns:minmax(0, 3fr) minmax(0, 2fr); align-items:stretch; gap:20px; }
+.report-slide .expense-distribution > .glass-panel { min-width:0; padding:18px; }
+.report-slide .expense-distribution .expense-comparison-table { max-height:360px; }
+.report-slide .expense-distribution .h-80 { height:360px; }

@@ -28,7 +28,7 @@ export default function GastosDistribution({ report }: Props) {
   };
 
   return (
-    <div className="grid gap-6">
+    <div className="expense-distribution grid gap-6">
       <div className="glass-panel rounded-3xl p-6 shadow-soft-xl">
         <h2 className="font-display text-xl">Distribución de prestaciones</h2>
         <p className="mt-2 text-xs text-ink/70">Variación del gasto UF frente a los mismos meses del año anterior: ↓ baja más de 2 %, ↑ sube más de 2 %, — entre −2 % y +2 %.</p>
