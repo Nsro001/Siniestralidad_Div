@@ -282,3 +282,16 @@ export const buildGastosReport = (
     healthByPrestation,
   };
 };
+
+// Salud representa la población asegurada sin duplicarla entre coberturas.
+export function buildInsuredEvolution(premiums: PremiumRow[], client: string, periodsRaw?: string) {
+  const clientRows = premiums.filter(row => row.clientName === client);
+  const selected = normalizeSelection(periodsRaw);
+  const periods = [...new Set(selected.length ? selected : clientRows.map(row => row.period))].sort();
+  return periods.map(period => {
+    const rows = clientRows.filter(row => row.period === period && row.coverage.trim().toLocaleLowerCase() === "salud");
+    const sum = (field: "holders" | "dependents") => rows.length && rows.every(row => row[field] != null)
+      ? rows.reduce((total, row) => total + row[field]!, 0) : null;
+    return { period, holders: sum("holders"), dependents: sum("dependents") };
+  });
+}

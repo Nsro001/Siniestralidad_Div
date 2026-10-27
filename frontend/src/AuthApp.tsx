@@ -67,9 +67,11 @@ export default function AuthApp() {
     {issue && <button className="account-primary mt-4" onClick={() => { setIssue(""); setRetry(value => value + 1); }}>Reintentar conexión</button>}
     <button className="account-secondary mt-4" onClick={logout}>Salir</button>
   </section></main>;
-  return <>
+  return <div className="ng-shell">
+    <a className="ng-skip-link no-print" href="#workspace">Ir al contenido</a>
     <header className="account-ui account-bar no-print">
-      <div><strong>{profile.full_name || profile.email}</strong><p className="account-muted text-sm">{profile.role === "admin" ? "Administrador" : profile.role === "manager" ? "Jefe" : "KAM"}</p></div>
+      <div className="ng-sidebar-brand"><p className="ng-wordmark">NOERGON<span> / ANALYTICS</span></p><p className="ng-brand-caption">Analítica de siniestralidad</p></div>
+      <div className="ng-sidebar-profile"><strong>{profile.full_name || profile.email}</strong><p className="account-muted text-sm">{profile.role === "admin" ? "Administrador" : profile.role === "manager" ? "Jefe" : "KAM"}</p></div>
       <nav aria-label="Cuenta" className="account-nav">
         <button aria-current={view === "dashboard" ? "page" : undefined} onClick={() => setView("dashboard")}>Inicio</button>
         <button aria-current={view === "reports" ? "page" : undefined} onClick={() => setView("reports")}>Reportes</button>
@@ -78,6 +80,7 @@ export default function AuthApp() {
         <button onClick={logout}>Cerrar sesión</button>
       </nav>
     </header>
+    <div id="workspace" className="ng-workspace" tabIndex={-1}>
     {view === "dashboard" ? <PortfolioDashboard profile={profile} onOpenClient={name => { setReportClient(name); setView("reports"); }} /> : view === "admin" && profile.role === "admin" ? <AdminAccounts /> : view === "password" ?
       <main className="account-ui accounts-page no-print"><section className="glass-panel account-card max-w-lg">
         <h1 className="font-display text-2xl">Cambiar contraseña</h1>
@@ -88,5 +91,6 @@ export default function AuthApp() {
           {passwordNotice && <p role="status">{passwordNotice}</p>}
         </form>
       </section></main> : <App key={`${profile.id}-${reportClient}`} profile={profile} initialClient={reportClient} />}
-  </>;
+    </div>
+  </div>;
 }

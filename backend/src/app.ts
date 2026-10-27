@@ -7,7 +7,7 @@ import { getPortfolio } from "./portfolio.js";
 import express, { type RequestHandler, type ErrorRequestHandler } from "express";
 import multer from "multer";
 import { parseUpload } from "./parser.js";
-import { buildGastosReport, buildPrimasReport } from "./report.js";
+import { buildGastosReport, buildPrimasReport, buildInsuredEvolution } from "./report.js";
 import { getClient, getRows, getFilters, saveRows } from "./storage.js";
 import { authenticate, adminAuthClient, allRows, databaseError, HttpError, requireAdmin } from "./supabase.js";
 import type { ExpenseRow, PremiumRow } from "./types.js";
@@ -118,8 +118,9 @@ export function createApp(verifySession = authenticate) {
     const allowedClient = await getClient(res.locals.auth.db, client);
     const coverages = String(req.query.coverages ?? "");
     const periods = String(req.query.periods ?? "");
-    const report = buildPrimasReport(await getRows<PremiumRow>(res.locals.auth.db, allowedClient.id, "primas"), client, coverages, periods);
-    res.json({ series: report });
+    const premiums = await getRows<PremiumRow>(res.locals.auth.db, allowedClient.id, "primas");
+    const report = buildPrimasReport(premiums, client, coverages, periods);
+    res.json({ series: report, insuredEvolution: buildInsuredEvolution(premiums, client, periods) });
   }));
 
   app.get("/report/gastos/download", asyncRoute(async (req, res) => {

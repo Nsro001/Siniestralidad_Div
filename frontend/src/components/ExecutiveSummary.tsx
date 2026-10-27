@@ -1,3 +1,4 @@
+import { StatCard } from "./DesignSystem";
 import { ClaimantsReport, PrimasReport } from "../types";
 
 type Props = {
@@ -57,7 +58,7 @@ export default function ExecutiveSummary({ report, claimants, periods }: Props) 
   const periodLabel = sortedPeriods.length
     ? sortedPeriods.length === 1
       ? shortPeriod(sortedPeriods[0])
-      : `${shortPeriod(sortedPeriods[0])} to ${shortPeriod(sortedPeriods[sortedPeriods.length - 1])}`
+      : `${shortPeriod(sortedPeriods[0])} a ${shortPeriod(sortedPeriods[sortedPeriods.length - 1])}`
     : "Sin período";
   const indicators = [
     { coverage: "Consolidado S+D+C", totals: consolidated },
@@ -72,6 +73,12 @@ export default function ExecutiveSummary({ report, claimants, periods }: Props) 
           <p className="text-xs uppercase tracking-[0.28em] text-moss">Resumen ejecutivo</p>
           <h2 className="mt-1 font-display text-2xl">Siniestralidad totalizada</h2>
         </div>
+      </div>
+
+      <div className="ng-summary-stats no-print">
+        <StatCard label="Prima consolidada" value={`${fmtUf(consolidated.premiumUf)} UF`} detail="Consolidado Salud, Dental y Catastrófico" />
+        <StatCard label="Gasto consolidado" value={`${fmtUf(consolidated.spendUf)} UF`} detail={periodLabel} />
+        <StatCard label="Siniestralidad consolidada" value={fmtPct(consolidated.lossRatio)} detail="Gasto / prima · período seleccionado" />
       </div>
 
       <div className="executive-indicators">

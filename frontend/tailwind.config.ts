@@ -5,10 +5,11 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ["\"Space Grotesk\"", "sans-serif"],
-        body: ["\"Instrument Sans\"", "sans-serif"],
+        display: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        body: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       colors: {
+        noergon: { navy: "var(--ng-navy)", primary: "var(--ng-primary)", surface: "var(--ng-surface)", border: "var(--ng-border)", muted: "var(--ng-text-muted)" },
         ink: "#151314",
         sand: "#f3efe7",
         ember: "#e2734a",
