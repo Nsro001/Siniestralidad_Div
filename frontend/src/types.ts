@@ -6,6 +6,7 @@ export type FiltersResponse = {
 };
 
 export type PrimasReport = {
+  insuredEvolution?: Array<{ period: string; holders: number | null; dependents: number | null }>;
   series: Array<{
     coverage: string;
     series: Array<{ period: string; premiumUf: number; spendUf: number; previousPeriod?: string; previousLossRatio?: number | null }>;

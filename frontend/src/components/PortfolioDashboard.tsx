@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PageHeader, StatCard } from "./DesignSystem";
 import { fetchPortfolio } from "../api";
 import type { AccountProfile, Portfolio } from "../types";
 
@@ -53,11 +54,7 @@ export default function PortfolioDashboard({ profile, onOpenClient }: { profile:
     .filter(r => r.date >= `${today.slice(0, 7)}-01` && r.date <= horizon).sort((a, b) => a.date.localeCompare(b.date));
   const missing = clients.filter(c => !c.renewals.length).length;
   return <main className="account-ui accounts-page portfolio-page">
-    <div className="portfolio-heading">
-      <div><p className="account-eyebrow">Cartera de clientes</p><h1 className="font-display text-3xl mt-2">{profile.role === "manager" ? "Mi equipo" : profile.role === "admin" ? "Vista general" : "Mi cartera"}</h1>
-        <p className="account-muted mt-3">Clientes, primas y próximas renovaciones en un solo lugar.</p></div>
-      <button className="account-secondary" onClick={() => setReload(value => value + 1)}>Actualizar</button>
-    </div>
+    <PageHeader eyebrow="Cartera de clientes" title={profile.role === "manager" ? "Mi equipo" : profile.role === "admin" ? "Vista general" : "Mi cartera"} description="Clientes, primas y próximas renovaciones en un solo lugar." actions={<button className="account-secondary" onClick={() => setReload(value => value + 1)}>Actualizar datos</button>} />
     {updatedAt && <p className="account-muted text-sm mt-3">Última consulta: {updatedAt.toLocaleTimeString("es-CL")} · Actualización automática cada minuto.</p>}
     {error ? <p role="alert" className="account-error mt-4">{error}</p> : !data ? <p role="status" className="mt-6">Cargando cartera…</p> : <>
       <div className="portfolio-filters account-form mt-6">
@@ -65,9 +62,9 @@ export default function PortfolioDashboard({ profile, onOpenClient }: { profile:
         <label>Buscar cliente<input type="search" placeholder="Nombre del cliente" value={search} onChange={e => setSearch(e.target.value)} /></label>
       </div>
       <div className="portfolio-stats mt-6">
-        <section className="glass-panel account-card"><p className="account-muted">Clientes</p><strong>{clients.length}</strong><span>en la cartera seleccionada</span></section>
-        <section className="glass-panel account-card"><p className="account-muted">Prima anual estimada</p><strong>{uf(clients.some(c => c.annualPremiumUf !== null) ? annual : null)}</strong><span>Último mes de cada cliente × 12</span></section>
-        <section className="glass-panel account-card"><p className="account-muted">Renovaciones próximas</p><strong>{renewals.length}</strong><span>Mes en curso y próximos 90 días · {missing} sin período</span></section>
+        <StatCard label="Clientes" value={clients.length} detail="En la cartera seleccionada" />
+        <StatCard label="Prima anual estimada" value={uf(clients.some(c => c.annualPremiumUf !== null) ? annual : null)} detail="Último mes de cada cliente × 12" />
+        <StatCard label="Renovaciones próximas" value={renewals.length} detail={`Mes en curso y próximos 90 días · ${missing} sin período`} />
       </div>
       <section className="glass-panel account-card mt-6">
         <h2 className="font-display text-xl">Próximas renovaciones</h2>

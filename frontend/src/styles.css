@@ -1,3 +1,5 @@
+@import "./noergon-tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -509,3 +511,75 @@ body {
 .report-slide .expense-distribution > .glass-panel { min-width:0; padding:18px; }
 .report-slide .expense-distribution .expense-comparison-table { max-height:360px; }
 .report-slide .expense-distribution .h-80 { height:360px; }
+
+/* NOERGON phase 1. Screen styles exclude the branded presentation canvas. */
+@media screen {
+  :root:not([data-theme]) {
+    --bg: var(--ng-bg); --bg-pattern: none; --text: var(--ng-text);
+    --muted: #475569; --muted-2: #526176; --panel: var(--ng-surface);
+    --panel-strong: var(--ng-surface); --panel-border: var(--ng-border);
+    --ink: var(--ng-navy); --sand: #f8fafc; --moss: #1d4ed8; --ember: #b45309; --ocean: #2563eb;
+  }
+  body { font-family: var(--ng-font); }
+  .ng-shell { min-height: 100vh; }
+  .ng-shell .account-bar { position: fixed; inset: 0 auto 0 0; width: 240px; z-index: 30; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; padding: 32px 20px; gap: 32px; background: var(--ng-navy); color: #f8fafc; border-right: 1px solid #24344e; }
+  .ng-wordmark { font-size: 22px; font-weight: 750; letter-spacing: .08em; }
+  .ng-wordmark span { display: block; font-size: 10px; letter-spacing: .22em; color: #7dd3fc; margin-top: 8px; }
+  .ng-brand-caption { font-size: 12px; color: #cbd5e1; margin-top: 16px; }
+  .ng-sidebar-profile { order: 2; margin-top: auto; padding-top: 20px; border-top: 1px solid #334155; overflow-wrap: anywhere; font-size: 13px; }
+  .ng-sidebar-profile .account-muted { color: #cbd5e1; margin-top: 6px; }
+  .ng-shell .account-nav { display: grid; gap: 8px; }
+  .ng-shell .account-nav button { text-align: left; padding: 12px 14px; color: #cbd5e1; }
+  .ng-shell .account-nav button:hover { background: var(--ng-surface-dark); color: white; }
+  .ng-shell .account-nav [aria-current="page"] { background: #1e3a6a; color: white; box-shadow: inset 3px 0 var(--ng-accent); }
+  .ng-workspace { margin-left: 240px; min-width: 0; }
+  .ng-workspace .accounts-page, .ng-report-page { max-width: 1440px; margin-inline: auto; padding: 40px 32px; }
+  .ng-page-heading { display: flex; justify-content: space-between; align-items: center; gap: 24px; }
+  .ng-page-heading h1 { font-size: clamp(26px, 3vw, 36px); font-weight: 650; letter-spacing: -.035em; margin: 8px 0; }
+  .ng-page-heading .account-muted { font-size: 14px; }
+  .ng-shell .account-eyebrow { color: var(--ocean); font-size: 11px; letter-spacing: .14em; font-weight: 700; }
+  .ng-shell .account-primary { background: var(--ng-primary); }
+  .ng-shell button:disabled { cursor: not-allowed; opacity: .5; }
+  .ng-shell :is(button, a, input, select, summary):focus-visible { outline: 3px solid var(--ng-accent); outline-offset: 3px; }
+  .ng-shell .portfolio-page .glass-panel, .ng-report-page > .glass-panel, #report-root .glass-panel { backdrop-filter: none; border-radius: 16px; box-shadow: 0 2px 6px #0b142605; }
+  .ng-stat { min-width: 0; padding: 24px; border: 1px solid var(--panel-border); border-radius: 12px; background: var(--panel); border-top: 3px solid var(--ocean); }
+  .ng-stat-label { color: var(--muted); font-size: 13px; font-weight: 600; }
+  .ng-stat-value { display: block; font-size: clamp(24px, 2.5vw, 34px); line-height: 1.2; font-weight: 650; letter-spacing: -.035em; font-variant-numeric: tabular-nums; margin: 16px 0 10px; overflow-wrap: anywhere; }
+  .ng-stat-detail { color: var(--muted); font-size: 12px; line-height: 1.6; }
+  .portfolio-filters { max-width: none; padding: 20px; background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px; }
+  .portfolio-table table { min-width: 760px; font-variant-numeric: tabular-nums; }
+  .portfolio-table th { background: var(--bg); font-weight: 600; padding-block: 14px; }
+  .portfolio-table tbody tr:hover { background: var(--bg); }
+  .portfolio-table :is(th, td):nth-child(n+3) { text-align: right; }
+  .portfolio-renewals li { padding-bottom: 16px; border-bottom: 1px solid var(--panel-border); }
+  .portfolio-renewals time { font-size: 12px; padding: 6px 10px; background: var(--bg); border-radius: 8px; white-space: nowrap; }
+  #report-root { margin-top: 24px; }
+  #report-root > * + * { margin-top: 24px; }
+  .ng-summary-stats { display: none; }
+  #report-root .ng-summary-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 24px; }
+  #report-root .executive-indicators { max-width: none; gap: 16px; margin: 24px 0; }
+  #report-root .executive-indicator { padding: 20px; border: 1px solid var(--panel-border); border-radius: 12px; text-align: left; }
+  #report-root .executive-circle { border: 0; border-radius: 0; width: auto; aspect-ratio: auto; justify-content: flex-start; font-size: 28px; font-weight: 650; color: var(--ocean); }
+  #report-root .executive-claimants { max-width: none; }
+  #report-root .executive-totals { font-variant-numeric: tabular-nums; }
+  #report-root .executive-totals thead { background: var(--bg); letter-spacing: .06em; }
+  #report-root .conclusion-item { padding: 16px 20px; border-left: 3px solid var(--ocean); background: var(--bg); border-radius: 0 8px 8px 0; }
+  #report-root .conclusion-item p { margin-top: 8px; color: var(--muted); }
+  .ng-report-page > header h1 { font-weight: 650; letter-spacing: -.035em; }
+  .ng-report-page > header :is(button, select) { border-radius: 8px; }
+  .ng-skip-link { position: fixed; top: 8px; left: 250px; z-index: 1100; padding: 12px; background: white; color: #0b1426; transform: translateY(-160%); }
+  .ng-skip-link:focus { transform: translateY(0); }
+  @media (max-width: 1100px) { .portfolio-stats { grid-template-columns: 1fr; } }
+  @media (max-width: 760px) {
+    .ng-shell .account-bar { position: static; width: auto; padding: 20px; gap: 20px; }
+    .ng-shell .account-nav { display: flex; flex-wrap: wrap; gap: 6px; }
+    .ng-wordmark span { display: inline; margin-left: 8px; }
+    .ng-brand-caption { margin-top: 8px; }
+    .ng-sidebar-profile { margin-top: 0; padding-top: 12px; }
+    .ng-workspace { margin-left: 0; }
+    .ng-workspace .accounts-page, .ng-report-page { padding: 24px 16px; }
+    .ng-page-heading { align-items: flex-start; flex-direction: column; gap: 16px; }
+    #report-root .ng-summary-stats, #report-root .executive-indicators { grid-template-columns: 1fr; }
+    .ng-skip-link { left: 8px; }
+  }
+}

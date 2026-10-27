@@ -13,6 +13,7 @@ import { AccountProfile, ClaimantsReport, FiltersResponse, GastosReport, PrimasR
 import ReportPresentation, { ReportDeck, type ReportSlide } from "./components/ReportPresentation";
 import ExecutiveSummary from "./components/ExecutiveSummary";
 import GastosDistribution from "./components/GastosDistribution";
+import InsuredEvolution from "./components/InsuredEvolution";
 import PrimasCharts from "./components/PrimasCharts";
 import MultiSelect from "./components/MultiSelect";
 import TopProvidersTable from "./components/TopProvidersTable";
@@ -249,6 +250,7 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
   const slides: ReportSlide[] = [];
   if (branding) slides.push({id:"cover",title:"Informe de siniestralidad",content:<ReportCover client={selectedClient} periods={selectedPeriods} coverages={selectedCoverages} branding={branding} generated={generated}/>});
   if (primasReport) {
+    slides.push({ id: "insured-evolution", title: "Evolución de titulares y cargas", content: <InsuredEvolution rows={primasReport.insuredEvolution ?? []} /> });
     slides.push({ id: "summary", title: "Resumen ejecutivo", content: <ExecutiveSummary report={primasReport} claimants={claimantsReport} periods={selectedPeriods} /> });
     if (visibleReports.primas) primasReport.series.forEach(coverage => {
       slides.push({ id: `premium-${coverage.coverage}`, title: `Siniestralidad · ${coverage.coverage}`, content: <PrimasCharts client={selectedClient} report={{ series: [coverage] }} /> });
@@ -275,7 +277,7 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
     }`;
 
   return (
-    <div className="min-h-screen px-6 py-10 md:px-12">
+    <main className="ng-report-page min-h-screen px-6 py-10 md:px-12">
       <header className="no-print mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-sm uppercase tracking-[0.3em] text-moss">Siniestralidad colectivos</p>
@@ -283,11 +285,12 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
         </div>
         <div className="no-print flex flex-wrap items-center gap-3">
           <select
+            aria-label="Tema visual del reporte"
             className="rounded-full border border-ink/20 bg-white/70 px-3 py-2 text-sm"
             value={theme}
             onChange={(event) => setTheme(event.target.value)}
           >
-            <option value="classic">Classic</option>
+            <option value="classic">NOERGON</option>
             <option value="divina">Divina</option>
             <option value="oscuro">Oscuro</option>
             <option value="blue-saas">Blue SaaS</option>
@@ -352,8 +355,9 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
         <button className="mb-4 text-sm underline" onClick={() => setDataVersion(value => value + 1)}>Actualizar clientes y datos</button>
         <div className="grid gap-6 md:grid-cols-3">
           <div>
-            <label className="text-sm font-semibold">Nombre Cliente</label>
+            <label htmlFor="report-client" className="text-sm font-semibold">Cliente</label>
             <select
+              id="report-client"
               className="mt-2 w-full rounded-xl border border-ink/20 bg-white/80 px-3 py-2 text-sm"
               value={selectedClient}
               onChange={(event) => setSelectedClient(event.target.value)}
@@ -489,6 +493,6 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
         )}
         {conclusion && <ExecutiveConclusion conclusion={conclusion} />}
       </div>
-    </div>
+    </main>
   );
 }
