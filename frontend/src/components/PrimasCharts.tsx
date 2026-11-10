@@ -20,9 +20,12 @@ import { PrimasReport } from "../types";
 type Props = {
   report: PrimasReport;
   client: string;
+  interactive?: boolean;
+  qualityByPeriod?: Record<string,string>;
+  scope?: 'company'|'policy';
 };
 
-export default function PrimasCharts({ report, client }: Props) {
+export default function PrimasCharts({ report, client, interactive=true, qualityByPeriod, scope='company' }: Props) {
   const detailTarget = useContext(PresentationDetailContext);
   const [selected, setSelected] = useState<{ coverage: string; period: string } | null>(null);
   if (report.series.length === 0) {
@@ -38,11 +41,12 @@ export default function PrimasCharts({ report, client }: Props) {
       {report.series.map((coverage) => {
         const seriesWithRatio = coverage.series.map((row) => ({
           ...row,
-          lossRatio: row.premiumUf > 0 ? row.spendUf / row.premiumUf : null,
+          lossRatio: row.lossRatio ?? null,
         }));
         const previousPeriods = coverage.series.flatMap(row => row.previousPeriod ? [row.previousPeriod] : []);
         const missingPrevious = coverage.series.filter(row => row.previousLossRatio == null);
         const selectPeriod = (period: unknown) => {
+          if (!interactive) return;
           if (typeof period === "string" && coverage.series.some(row => row.period === period)) {
             setSelected({ coverage: coverage.coverage, period });
           }
@@ -51,6 +55,8 @@ export default function PrimasCharts({ report, client }: Props) {
         return (
           <div key={coverage.coverage} className="glass-panel rounded-3xl p-6 shadow-soft-xl">
           <h2 className="font-display text-xl">Siniestralidad - {coverage.coverage}</h2>
+            <p className="account-muted text-sm">{scope==='policy'?'Póliza individual · las bases y la calidad se identifican en las tablas mensuales de este informe.':'Consolidado empresarial de sábanas; base pagada/incurrida no determinada. Los registros disponibles no acreditan completitud contractual.'}</p>
+            <div aria-label={`Calidad mensual ${coverage.coverage}`}>{coverage.series.map(row=><span key={row.period} className={`technical-quality mr-2 mt-2 quality-${qualityByPeriod?.[row.period]??(row.premiumUf===null?'incomplete':'pending_validation')}`}>{row.period}: {qualityByPeriod?.[row.period]==='complete'?'Completo · contractual':row.premiumUf===null?'Incompleto · sin datos':'Pendiente de validación contractual'}</span>)}</div>
             <p className="mt-2 text-sm text-ink/70">Actual: {formatReportPeriods(coverage.series.map(row => row.period))} · Anterior: {formatReportPeriods(previousPeriods)}</p>
             {missingPrevious.length > 0 && <p className="mt-1 text-xs text-ink/70">Sin comparación disponible en {missingPrevious.length} de {coverage.series.length} meses.</p>}
             <p className="mt-2 text-xs text-ink/70">Comparación con el mismo mes del año anterior. Los meses sin prima válida no muestran punto comparativo.</p>

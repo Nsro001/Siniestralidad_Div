@@ -1,0 +1,92 @@
+{
+  "method": "Transcripción manual de tablas originales; muestra dirigida sin anotador independiente. Vida p4/p7, Salud p8/p17 y Consorcio p6/p7. Campos ausentes anotados vacíos sin inferir unidades ni frecuencias.",
+  "sampleSize": 65,
+  "metrics": {
+    "value": {
+      "correct": 65,
+      "wrong": 0,
+      "missing": 0,
+      "ambiguous": 0,
+      "total": 65,
+      "precision": 1,
+      "recall": 1
+    },
+    "currency": {
+      "correct": 65,
+      "wrong": 0,
+      "missing": 0,
+      "ambiguous": 0,
+      "total": 65,
+      "precision": 1,
+      "recall": 1
+    },
+    "periodicity": {
+      "correct": 65,
+      "wrong": 0,
+      "missing": 0,
+      "ambiguous": 0,
+      "total": 65,
+      "precision": 1,
+      "recall": 1
+    },
+    "rateUnit": {
+      "correct": 65,
+      "wrong": 0,
+      "missing": 0,
+      "ambiguous": 0,
+      "total": 65,
+      "precision": 1,
+      "recall": 1
+    },
+    "subtotal": {
+      "correct": 65,
+      "wrong": 0,
+      "missing": 0,
+      "ambiguous": 0,
+      "total": 65,
+      "precision": 1,
+      "recall": 1
+    }
+  },
+  "documents": {
+    "consorcio": {
+      "pages": 52,
+      "tariffCells": 0,
+      "rateCells": 8,
+      "capitalCells": 4,
+      "optionalAbsent": [
+        "premium"
+      ],
+      "missingRequired": [
+        "insurer",
+        "currency"
+      ]
+    },
+    "vida": {
+      "pages": 14,
+      "tariffCells": 15,
+      "rateCells": 4,
+      "capitalCells": 4,
+      "optionalAbsent": [
+        "premium"
+      ],
+      "missingRequired": [
+        "periodicity",
+        "currency"
+      ]
+    },
+    "salud": {
+      "pages": 26,
+      "tariffCells": 30,
+      "rateCells": 0,
+      "capitalCells": 0,
+      "optionalAbsent": [
+        "premium"
+      ],
+      "missingRequired": [
+        "periodicity",
+        "currency"
+      ]
+    }
+  }
+}

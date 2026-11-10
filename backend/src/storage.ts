@@ -78,7 +78,11 @@ export async function getFilters(db: SupabaseClient) {
   const activeClients = clients.filter(client => datasets.some(row => row.client_id === client.id));
   for (const client of activeClients) {
     const own = datasets.filter(row => row.client_id === client.id);
-    const coverages = new Set<string>(own.filter(row => row.kind === "primas").flatMap(row => row.coverages));
+    const premiumDatasets = own.filter(row => row.kind === "primas");
+    // Un cliente solo con gastos también debe poder consultar esos registros.
+    // Si hay primas, se mantiene su catálogo histórico de coberturas.
+    const coverageDatasets = premiumDatasets.length ? premiumDatasets : own.filter(row => row.kind === "gastos");
+    const coverages = new Set<string>(coverageDatasets.flatMap(row => row.coverages));
     if (["Salud", "Dental", "Catastrófico"].some(coverage => coverages.has(coverage))) coverages.add("Consolidado S+D+C");
     coveragesByClient[client.name] = [...coverages].sort();
     premiumPeriodsByClient[client.name] = [...new Set<string>(own.filter(row => row.kind === "primas").flatMap(row => row.periods))].sort();

@@ -1,6 +1,6 @@
 import xlsx from "xlsx";
 import ExcelJS from "exceljs";
-import { Readable } from "node:stream";
+import { orderedXlsxSheets } from './excelStreamOrder.js';
 import { ExpenseRow, PremiumRow } from "./types.js";
 
 const normalizeKey = (value: string) =>
@@ -131,8 +131,13 @@ const parseExcelDate = (value: unknown): Date | null => {
 };
 
 const toPeriod = (value: unknown): string | null => {
+  // PERIODO también puede venir como 202505 (CSV o celda numérica).
+  // Interpretarlo como Date produciría el año 202505 y la RPC lo rechazaría.
+  const raw = typeof value === "number" || typeof value === "string" ? String(value).trim() : "";
+  const compact = /^(\d{4})(\d{2})$/.exec(raw);
+  if (compact) return Number(compact[1]) >= 1000 && Number(compact[2]) >= 1 && Number(compact[2]) <= 12 ? `${compact[1]}-${compact[2]}` : null;
   const date = parseExcelDate(value);
-  if (!date) return null;
+  if (!date || date.getUTCFullYear() < 1000 || date.getUTCFullYear() > 9999) return null;
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
 };
 
@@ -176,6 +181,7 @@ const parsePremiumRows = (rows: Record<string, unknown>[]): PremiumRow[] => {
   const headers = Object.keys(rows[0]);
   const clientNameKey = findHeaderKey(headers, ["Nombre Cliente", "Nombe Cliente"]);
   const clientRutKey = findHeaderKey(headers, ["Rut Cliente"]);
+  const clientDvKey = findHeaderKey(headers, ["DV", "DV Cliente", "Dígito verificador cliente"]);
   const periodKey = findHeaderKey(headers, ["Periodo"]);
   const coverageKey = findHeaderKey(headers, ["Cobertura"]);
   const premiumKey = findHeaderKey(headers, ["Prima UF"]);
@@ -203,9 +209,11 @@ const parsePremiumRows = (rows: Record<string, unknown>[]): PremiumRow[] => {
       const clientName = String(row[clientNameKey] ?? "").trim();
       const period = toPeriod(row[periodKey]);
       if (!clientName || !period) return null;
+      const rutBase = clientRutKey ? String(row[clientRutKey] ?? "").trim() : "";
+      const rutDv = clientDvKey ? String(row[clientDvKey] ?? "").trim().toUpperCase() : "";
       return {
         clientName,
-        clientRut: clientRutKey ? String(row[clientRutKey] ?? "").trim() : undefined,
+        clientRut: rutBase ? (rutDv && !/-[0-9K]$/i.test(rutBase) ? `${rutBase}-${rutDv}` : rutBase) : undefined,
         period,
         coverage: String(row[coverageKey] ?? "").trim(),
         policy: policyKey ? String(row[policyKey] ?? "").trim() : "",
@@ -259,6 +267,8 @@ const parseExpenseRows = (rows: Record<string, unknown>[]): ExpenseRow[] => {
         period,
         coverage: coverageFromPlan(planKey ? row[planKey] : ""),
         descCober: descCoberRaw || "(Sin descripción)",
+        sourcePlan: planKey ? String(row[planKey] ?? "").trim() : "",
+        coverageInferred: !/(dental|catastr|vida|salud)/i.test(planKey ? String(row[planKey] ?? "") : ""),
         policy: policyKey ? String(row[policyKey] ?? "").trim() : "",
         prestation: prestationKey ? String(row[prestationKey] ?? "").trim() : "",
         reembolsoUf: parseNumber(row[reembolsoKey]),
@@ -305,9 +315,7 @@ export async function parseUpload(buffer: Buffer, kind: "primas" | "gastos", fil
   if (buffer.length < 2 || buffer.readUInt16LE(0) !== 0x4b50) {
     return kind === "primas" ? parsePremiums(buffer) : parseExpenses(buffer);
   }
-  const workbook = new ExcelJS.stream.xlsx.WorkbookReader(Readable.from([buffer]), {
-    worksheets: "emit", sharedStrings: "cache", styles: "ignore", hyperlinks: "ignore", entries: "ignore",
-  });
+  const workbook = orderedXlsxSheets(buffer);
   const rows: (PremiumRow | ExpenseRow)[] = [];
   let batch: Record<string, unknown>[] = [];
   const flush = () => {

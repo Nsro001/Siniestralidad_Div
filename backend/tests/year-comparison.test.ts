@@ -12,6 +12,11 @@ test("compara el mismo mes previo y calcula el consolidado ponderado", () => {
  assert.equal(result[0].previousPeriod, "2024-11");
  assert.equal(result[1].previousLossRatio, null);
  assert.equal(result[2].previousLossRatio, null);
+ assert.equal(result[1].premiumUf,null);assert.equal(result[1].spendUf,null);assert.equal(result[1].qualityStatus,'incomplete');
+});
+test('consolidado empresarial distingue valor cero explícito de mes sin registros',()=>{
+ const rows=buildPrimasReport([p('2026-01',100,0)],'A','Salud','2026-01,2026-02')[0].series;
+ assert.equal(rows[0].spendUf,0);assert.equal(rows[0].lossRatio,0);assert.equal(rows[1].spendUf,null);assert.equal(rows[1].lossRatio,null);
 });
 test("umbral estricto de 2 %, desapariciones y nuevas prestaciones", () => {
  for (const [amount, trend] of [[97.99, "down"], [98, "stable"], [100, "stable"], [102, "stable"], [102.01, "up"]] as const) {

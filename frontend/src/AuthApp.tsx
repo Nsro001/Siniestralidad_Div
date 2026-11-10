@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { lazy, Suspense, useEffect, useState, type FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
 import App from "./App";
 import PortfolioDashboard from "./components/PortfolioDashboard";
@@ -8,13 +8,15 @@ import { supabase } from "./lib/supabase";
 import { fetchMe } from "./api";
 import type { AccountProfile } from "./types";
 
+const PortfolioAdministration = lazy(() => import("./components/PortfolioAdministration"));
+
 export default function AuthApp() {
   const [session, setSession] = useState<Session | null>(null);
   const [initializing, setInitializing] = useState(true);
   const [profile, setProfile] = useState<AccountProfile | null>(null);
   const [issue, setIssue] = useState("");
   const [retry, setRetry] = useState(0);
-  const [view, setView] = useState<"dashboard" | "reports" | "admin" | "password">("dashboard");
+  const [view, setView] = useState<"dashboard" | "reports" | "admin" | "password" | "portfolio">("dashboard");
   const [reportClient, setReportClient] = useState("");
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
@@ -75,13 +77,14 @@ export default function AuthApp() {
       <nav aria-label="Cuenta" className="account-nav">
         <button aria-current={view === "dashboard" ? "page" : undefined} onClick={() => setView("dashboard")}>Inicio</button>
         <button aria-current={view === "reports" ? "page" : undefined} onClick={() => setView("reports")}>Reportes</button>
+        {import.meta.env.VITE_PORTFOLIO_ADMIN_ENABLED !== "false" && <button aria-current={view === "portfolio" ? "page" : undefined} onClick={() => setView("portfolio")}>Administración de cartera</button>}
         {profile.role === "admin" && <button aria-current={view === "admin" ? "page" : undefined} onClick={() => setView("admin")}>Usuarios y clientes</button>}
         <button aria-current={view === "password" ? "page" : undefined} onClick={() => { setView("password"); setPasswordNotice(""); }}>Mi contraseña</button>
         <button onClick={logout}>Cerrar sesión</button>
       </nav>
     </header>
     <div id="workspace" className="ng-workspace" tabIndex={-1}>
-    {view === "dashboard" ? <PortfolioDashboard profile={profile} onOpenClient={name => { setReportClient(name); setView("reports"); }} /> : view === "admin" && profile.role === "admin" ? <AdminAccounts /> : view === "password" ?
+    {view === "dashboard" ? <PortfolioDashboard profile={profile} onOpenClient={name => { setReportClient(name); setView("reports"); }} /> : view === "portfolio" ? <Suspense fallback={<p role="status" className="account-ui accounts-page">Cargando administración de cartera…</p>}><PortfolioAdministration profile={profile} /></Suspense> : view === "admin" && profile.role === "admin" ? <AdminAccounts /> : view === "password" ?
       <main className="account-ui accounts-page no-print"><section className="glass-panel account-card max-w-lg">
         <h1 className="font-display text-2xl">Cambiar contraseña</h1>
         <form className="account-form mt-4" onSubmit={changePassword}>

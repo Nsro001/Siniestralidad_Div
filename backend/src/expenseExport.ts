@@ -19,7 +19,7 @@ export async function buildExpenseExport(rows: ExpenseRow[], client: string, per
     ['insuredRut', 'RUT asegurado', 18], ['patientRut', 'RUT paciente', 18], ['relation', 'Parentesco', 14],
     ['isapre', 'Previsión', 25], ['valPrest', 'Valor prestación', 20], ['valBonif', 'Valor bonificación', 20],
     ['mtoReclam', 'Monto reclamado', 20],
-    ['policy', 'Número de póliza', 22], ['prestation', 'Prestación', 55],
+    ['policy', 'Número de póliza', 22], ['prestation', 'Prestación', 55], ['sourcePlan', 'Plan de origen', 35],
   ];
   sheet.columns = columns.map(([key, header, width]) => ({ key, header, width }));
   for (const row of filtered) sheet.addRow(columns.map(([key]) => row[key] ?? ''));
@@ -38,6 +38,8 @@ export async function buildExpenseExport(rows: ExpenseRow[], client: string, per
   if (filtered.some(row => row.policy == null || row.prestation == null)) {
     selection.addRow(['Datos anteriores', 'Hay registros de cargas anteriores sin póliza o detalle de prestación conservados. Vuelve a cargar la sábana original para recuperarlos.']);
   }
+  const inferred = filtered.filter(row => row.coverageInferred).length;
+  if (inferred) selection.addRow(['Cobertura por revisar', `${inferred} filas sin plan reconocible clasificadas en Salud por compatibilidad histórica. Consultar Plan de origen.`]);
   selection.getColumn(2).width = 90;
   return workbook.xlsx.writeBuffer();
 }

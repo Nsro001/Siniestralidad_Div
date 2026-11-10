@@ -437,8 +437,11 @@ body {
 }
 
 /* Executive deck: a fixed design canvas shared by screen and PDF. */
-.brand-default { display: block; width: 420px; height: 145px; background: url('/noergon-brand.png') 2% 50% / 206% auto no-repeat; }
-.brand-default.brand-interior { width: 260px; height: 88px; background-position: 99% 50%; }
+.brand-default { display:block; width:420px; max-width:100%; height:auto; aspect-ratio:3 / 1; object-fit:contain; object-position:center; }
+.brand-default.brand-interior { width:260px; height:auto; }
+.slide-brands { display:flex; align-items:center; gap:16px; max-width:48%; flex-shrink:0; }
+.slide-brands:has(.brand-custom) .brand-default, .slide-brands .brand-custom { width:200px; height:auto; max-height:80px; object-fit:contain; }
+.report-cover footer .brand-default.brand-interior { width:150px; height:50px; max-width:45%; object-fit:contain; }
 .brand-custom { width: 260px; height: 88px; object-fit: contain; }
 .report-slide { --text:#173441; --muted:#526370; --muted-2:#526370; --moss:#42634d; --ember:#a54b21; --bg:#f1f7f8; --ink:#173441; --sand:#f1f7f8; --panel:#fff; --panel-strong:#fff; --panel-border:#dce7eb; --ocean:#007f91; --chart-1:#006780; --chart-2:#00b6a5; --chart-3:#173441; --chart-4:#53a4c3; --chart-5:#88cfc4; --chart-6:#627f92; color:#173441; background:#fff; width:1280px; height:720px; box-sizing:border-box; padding:28px 48px 20px; display:flex; flex-direction:column; gap:18px; font-family:Arial,sans-serif; }
 .slide-heading { display:flex; align-items:center; justify-content:space-between; gap:24px; border-bottom:1px solid #dce7eb; padding-bottom:12px; }
@@ -583,3 +586,81 @@ body {
     .ng-skip-link { left: 8px; }
   }
 }
+
+/* Administración contractual: mismas superficies y controles NOERGON. */
+.contract-tabs{display:flex;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--ng-border,#334155);padding-bottom:12px}
+.contract-tabs button{padding:10px 14px;border-radius:8px;border:1px solid #64748b;background:transparent;color:inherit}
+.contract-tabs button[aria-current=page]{background:#2563eb;color:#fff;border-color:#2563eb}
+.contract-grid,.contract-client-picker{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:16px;align-items:start}
+.contract-actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:16px 0}
+.contract-actions h3{margin-right:auto}
+.contract-panel,.contract-plan,.contract-term,.contract-review{padding:20px;margin-top:20px;border:1px solid #64748b;border-radius:12px;min-width:0}
+.contract-plan{border-left:3px solid #38bdf8}.contract-term{border-left:3px solid #2563eb}
+.contract-evidence{font-size:.875rem;padding:8px 0}.contract-evidence>summary{cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.contract-evidence label{margin-top:12px}
+.contract-page-text{white-space:pre-wrap;overflow-wrap:anywhere;overflow:auto;max-height:480px;padding:16px;background:#0b1426;color:#f8fafc;border-radius:8px;font-size:13px;line-height:1.6}
+.contract-review-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;margin-top:16px}
+.contract-candidate{margin:12px 0;display:block}.contract-candidate small{display:block;white-space:pre-wrap;overflow-wrap:anywhere}
+.contract-document{display:flex;flex-wrap:wrap;align-items:center;gap:16px;padding:12px 0;border-bottom:1px solid #64748b}
+.contract-notice{padding:16px;border-left:3px solid #38bdf8;background:rgba(56,189,248,.08)}
+.contract-save{border-top:1px solid #64748b;padding-top:16px}.contract-form textarea{min-height:84px;resize:vertical}
+.portfolio-filters{display:flex;flex-wrap:wrap;gap:16px;align-items:end}.portfolio-filters label{min-width:160px;flex:1}
+@media(max-width:800px){.contract-review-grid{grid-template-columns:minmax(0,1fr)}.contract-panel,.contract-plan,.contract-term{padding:12px}.contract-tabs button{flex:1}.contract-actions button{white-space:normal}}
+.technical-quality { display:inline-block; padding:.25rem .6rem; border-radius:1rem; font-size:.8rem; font-weight:600; border:1px solid currentColor; }
+.quality-complete { color:#08664f; background:#e7f5ef; }
+.quality-incomplete,.quality-partial,.quality-pending_validation { color:#795307; background:#fff4d8; }
+.quality-ambiguous { color:#a52d37; background:#fceced; }
+.policy-technical fieldset { border:1px solid var(--border-color,#d8dfdf); border-radius:1rem; padding:1rem; margin-block:1rem; }
+
+/* Analysis provenance remains visible in screen and PDF. */
+.analysis-origin { display:inline-block; border-radius:6px; padding:5px 10px; font-weight:700; background:#e5f4f1; color:#075a50; border:1px solid #9bc8bd; }
+.analysis-origin.origin-simulated { background:#fff4d8; color:#725000; border-color:#d8b55c; }
+.analysis-origin.origin-real { background:#fbe4e4; color:#802121; border-color:#d8a1a1; }
+.analysis-actions { display:flex; flex-wrap:wrap; gap:10px; margin:12px 0; }
+.analysis-conclusions { padding-left:24px; }
+.analysis-conclusions li { margin:14px 0; }
+.analysis-conclusions h4 { font-weight:700; }
+.analysis-scope { font-weight:600; margin-top:10px; }
+.analysis-quality { font-size:13px; margin-top:12px; }
+.analysis-pdf-table { width:100%; border-collapse:collapse; margin:14px 0; }
+.analysis-pdf-table th, .analysis-pdf-table td { padding:8px 10px; border-bottom:1px solid var(--panel-border); text-align:left; }
+.analysis-pdf-table th { color:var(--text); background:var(--panel-strong); }
+
+/* NOERGON: espacio de trabajo documental */
+.portfolio-admin .portfolio-workflow { margin-top:24px; background:linear-gradient(120deg,#f0fbff,#fff 75%); border:1px solid #cbe8ef; border-radius:22px; padding:28px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:20px; color:#123047; }
+.portfolio-kicker { font-size:11px; font-weight:800; letter-spacing:.14em; color:#087b96; }
+.portfolio-workflow h2 {font-size:26px; margin:8px 0; letter-spacing:-.035em;}
+.portfolio-workflow p,.portfolio-workflow small {color:#536b7c;}
+.portfolio-workflow ol {list-style:none;display:flex;width:100%;padding:0;gap:12px;margin:4px 0;}
+.portfolio-workflow li {flex:1;display:flex;gap:8px;align-items:center;font-size:12px;}
+.portfolio-workflow li span {display:grid;place-items:center;flex-shrink:0;width:26px;height:26px;border-radius:50%;background:#dff5fb;color:#006b85;font-weight:700;}
+.portfolio-admin > .contract-tabs {border-bottom:1px solid #dce6ed;padding-bottom:8px;gap:8px;}
+.portfolio-admin .account-card {background:#fff;border:1px solid #e0e9ef;border-radius:20px;box-shadow:0 8px 30px #16364b06;}
+.portfolio-review-summary {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:20px 0;}
+.portfolio-review-summary div {background:#f5f9fc;padding:16px;border-radius:12px;display:flex;flex-direction:column;gap:8px;overflow-wrap:anywhere;}
+.portfolio-review-summary small {color:#60768a;}
+@media(max-width:700px){.portfolio-workflow ol{flex-wrap:wrap;}.portfolio-workflow li{flex-basis:40%;}.portfolio-review-summary{grid-template-columns:1fr 1fr;}.portfolio-admin .portfolio-workflow{padding:20px;}.portfolio-admin .contract-tabs{overflow-x:auto;flex-wrap:nowrap;}.portfolio-admin .contract-tabs button{white-space:nowrap;}}
+
+.portfolio-workflow li[aria-current="step"] {color:#005d78;font-weight:700;}
+.portfolio-workflow li[aria-current="step"] span {background:#087c96;color:white;box-shadow:0 0 0 4px #dff5fb;}
+.portfolio-workflow .portfolio-progress {width:100%;height:5px;accent-color:#0797b7;}
+.portfolio-admin .contract-tabs button[aria-current="page"] {background:#153c54;color:#fff;border-color:#153c54;}
+
+.portfolio-progress::-webkit-progress-bar {background:#dfedf2;border-radius:8px;}
+.portfolio-progress::-webkit-progress-value {background:#0797b7;border-radius:8px;}
+.portfolio-progress::-moz-progress-bar {background:#0797b7;border-radius:8px;}
+
+.contract-extraction-review {min-width:0;margin:24px 0;padding-top:20px;border-top:1px solid #d5e4ed;}
+.condition-review-table {max-height:620px;overflow:auto;}
+.condition-review-table table {min-width:1050px;}
+.condition-review-table td {min-width:180px;vertical-align:top;}
+.condition-review-table textarea {min-height:64px;}
+.condition-warning {color:#805b17;font-size:12px;}
+.condition-pdf-viewer {margin-top:20px;max-width:900px;}
+.condition-pdf-page {position:relative;line-height:0;margin-top:14px;}
+.condition-pdf-page img {display:block;width:100%;height:auto;}
+.condition-region {position:absolute;pointer-events:none;background:#22d3ee33;outline:2px solid #00738e;}
+.condition-pdf-viewer blockquote {white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;padding:12px;background:#f0f8fc;}
+.condition-review-table table {table-layout:fixed;width:100%;}
+.condition-review-table input:not([type="checkbox"]),.condition-review-table select,.condition-review-table textarea {width:100%;min-width:0;box-sizing:border-box;display:block;margin-bottom:8px;}
+.condition-review-table textarea {border:1px solid #dbe5ee;border-radius:10px;background:white;padding:10px;color:#18374c;resize:vertical;}

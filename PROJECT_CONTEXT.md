@@ -1,5 +1,15 @@
 # Siniestralidad_Div - Contexto del proyecto
 
+## Administración de cartera (2026-10-30, implementación local)
+
+- Módulo con siete pestañas, múltiples pólizas/aseguradoras, coberturas, planes, grupos y condiciones documentadas.
+- Vigencia contractual en cartera, filtros/ordenamiento y conservación de métricas históricas.
+- Originales privados en Supabase Storage; extracción PDF/OCR local mediante Poppler/Tesseract; revisión con página y cita obligatorias para validar contratos.
+- Versiones inmutables de renovaciones/endosos, snapshots de sábanas, vínculos por versión contractual, movimientos acreditados, RLS y auditoría.
+- SQL completo: `supabase/ADMINISTRACION_CARTERA_COMPLETO.sql`. Aplicación/reversión y requisitos: `docs/ADMINISTRACION_CARTERA.md`.
+- No se aplicaron migraciones a producción ni se desplegó esta implementación. Primero probar en Supabase de desarrollo con documentos autorizados.
+
+
 ## Póliza y detalle de prestaciones en descarga (2026-10-03)
 
 - La carga de gastos conserva `Poliza` y `Desc.Cober` como `policy` y `prestation`; admite encabezados normalizados de CSV, XLS y XLSX.
@@ -328,3 +338,11 @@ Los endpoints existentes ahora requieren sesión; las cargas requieren administr
 - Administración → Usuarios y clientes → Portada del reporte por cliente: cargar, previsualizar, reemplazar o quitar logo de corredor/cliente y nombre de corredora. PNG/JPEG hasta 500 KiB por logo (UI hasta 4096 px por lado). No hay logos predeterminados ficticios.
 - Supabase: aplicar `202610010001_report_branding.sql` antes de desplegar. Nueva tabla privada `report_branding` por cliente; imágenes data URI pequeñas, independientes de las cargas de sábanas, sin bucket público. Lectura con `can_access_client`, escritura solo administrador activo. Endpoints GET `/report/branding`, PUT `/admin/report-branding`.
 - KAM proviene de `clients.kam_name`, sin confundirlo con el usuario que exporta. Si falta se indica. Los logos son opcionales; un error al cargar metadatos bloquea el botón PDF para evitar una portada atribuida incorrectamente.
+
+## Formatos actuales y marca (2026-10-30)
+
+- El usuario indicó usar el Supabase actual: los datos vigentes son de prueba y no se requiere otro proyecto de desarrollo.
+- Formatos verificados: 144 primas XLSX con Rut Cliente + DV y 28.456 gastos CSV UTF-8/punto y coma, con fechas locales y períodos YYYYMM mezclados. Se preservan cuatro clientes; uno tiene solo gastos.
+- Hay 3.390 gastos con plan RECHAZADO/NO INFORMADO; se conserva la regla histórica de Salud con aviso y plan original para revisión.
+- Logo oficial compartido: frontend/public/noergon-brand.png, copia exacta del archivo proporcionado. No se necesita guardarlo por cliente en Supabase.
+- Evidencia y reproducción: docs/VALIDACION_SABANAS_ACTUALES.md y backend/scripts/validate-current-inputs.mjs. No se aplicaron migraciones ni se publicaron las sábanas en Supabase durante esta validación.

@@ -1,0 +1,112 @@
+{
+  "sampleSize": 57,
+  "method": "Transcripción manual desde imágenes originales, siete páginas, muestra dirigida; no revisión independiente por otra persona.",
+  "metrics": {
+    "capital": {
+      "total": 4,
+      "correct": 4,
+      "wrong": 0,
+      "missing": 0,
+      "ambiguous": 0,
+      "unitCorrect": 4,
+      "periodCorrect": 4,
+      "precision": 1,
+      "recall": 1
+    },
+    "rate": {
+      "total": 4,
+      "correct": 4,
+      "wrong": 0,
+      "missing": 0,
+      "ambiguous": 0,
+      "unitCorrect": 4,
+      "periodCorrect": 4,
+      "precision": 1,
+      "recall": 1
+    },
+    "age": {
+      "total": 12,
+      "correct": 12,
+      "wrong": 0,
+      "missing": 0,
+      "ambiguous": 0,
+      "unitCorrect": 12,
+      "periodCorrect": 12,
+      "precision": 1,
+      "recall": 1
+    },
+    "reimbursement": {
+      "total": 16,
+      "correct": 16,
+      "wrong": 0,
+      "missing": 0,
+      "ambiguous": 0,
+      "unitCorrect": 16,
+      "periodCorrect": 16,
+      "precision": 1,
+      "recall": 1
+    },
+    "limit": {
+      "total": 15,
+      "correct": 15,
+      "wrong": 0,
+      "missing": 0,
+      "ambiguous": 0,
+      "unitCorrect": 15,
+      "periodCorrect": 15,
+      "precision": 1,
+      "recall": 1
+    },
+    "deductible": {
+      "total": 5,
+      "correct": 5,
+      "wrong": 0,
+      "missing": 0,
+      "ambiguous": 0,
+      "unitCorrect": 5,
+      "periodCorrect": 5,
+      "precision": 1,
+      "recall": 1
+    },
+    "waiting": {
+      "total": 1,
+      "correct": 1,
+      "wrong": 0,
+      "missing": 0,
+      "ambiguous": 0,
+      "unitCorrect": 1,
+      "periodCorrect": 1,
+      "precision": 1,
+      "recall": 1
+    }
+  },
+  "baseline": {
+    "scopedConditions": 0,
+    "reason": "Fase 1 devolvía fragmentos condition sin prestación/campo/plan; no había predicciones en este esquema.",
+    "rawCandidates": {
+      "consorcio": 215,
+      "vida": 45,
+      "salud": 129
+    }
+  },
+  "documents": {
+    "consorcio": {
+      "pages": 52,
+      "gridTables": 15,
+      "retainedLayouts": 11,
+      "structuredConditions": 136
+    },
+    "vida": {
+      "pages": 14,
+      "gridTables": 5,
+      "retainedLayouts": 3,
+      "structuredConditions": 35
+    },
+    "salud": {
+      "pages": 26,
+      "gridTables": 14,
+      "retainedLayouts": 10,
+      "structuredConditions": 166
+    }
+  }
+}

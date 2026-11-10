@@ -1,0 +1,53 @@
+import type { CoverageType } from "../../../shared/portfolio";
+export const COVERAGE_TYPES: CoverageType[] = [
+  "Vida",
+  "Salud",
+  "Dental",
+  "Catastrófico",
+];
+export const COVERAGE_FIELDS: Record<CoverageType, string[]> = {
+  Vida: [
+    "Fallecimiento",
+    "Muerte accidental",
+    "Invalidez",
+    "Capital asegurado",
+    "Tasa y base de cálculo",
+    "Edad de ingreso",
+    "Edad de permanencia",
+    "Exclusiones",
+    "Prima",
+  ],
+  Salud: [
+    "Prestación de reembolso",
+    "Porcentaje de reembolso",
+    "Tope",
+    "Capital máximo",
+    "Deducible individual",
+    "Deducible familiar",
+    "BMI",
+    "Farmacias",
+    "Convenios",
+    "Beneficios",
+    "Prima",
+    "Condiciones especiales",
+  ],
+  Dental: [
+    "Prestación odontológica",
+    "Porcentaje de reembolso",
+    "Tope",
+    "Capital",
+    "Deducible",
+    "Prima",
+    "Carencia",
+    "Prestadores",
+    "Exclusiones",
+  ],
+  Catastrófico: [
+    "Capital asegurado",
+    "Deducible",
+    "Cobertura",
+    "Condiciones de activación",
+    "Exclusiones",
+    "Prima",
+  ],
+};

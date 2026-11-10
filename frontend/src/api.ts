@@ -51,3 +51,33 @@ export const fetchMonthlyDetail = (params: { client: string; coverage: string; p
 export const fetchConclusion = (params: Record<string, string>): Promise<import("../../shared/executive").ExecutiveConclusion> => request(withQuery("/report/conclusion", params));
 export const fetchBranding = (client: string): Promise<import("../../shared/executive").ReportBranding> => request(withQuery("/report/branding", { client }));
 export const saveBranding = (client: string, values: Omit<import("../../shared/executive").ReportBranding, "kam_name">) => request(withQuery("/admin/report-branding", { client }), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(values) });
+
+const manage = "/portfolio/manage";
+export const fetchManagedClients = (): Promise<{clients: import("../../shared/portfolio").ManagedClient[]}> => request(`${manage}/clients`);
+export const fetchClientDetail = (id: string): Promise<import("../../shared/portfolio").PortfolioDetail> => request(`${manage}/clients/${encodeURIComponent(id)}`);
+const post = (path:string,body:unknown) => request(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+export const saveManagedClient = (body:unknown): Promise<{id:string}> => post(`${manage}/clients`,body);
+export const saveManagedPolicy = (clientId:string,body:unknown) => post(`${manage}/clients/${encodeURIComponent(clientId)}/policies`,body);
+export const fetchUnassignedDocuments = ():Promise<{documents:import("../../shared/portfolio").PolicyDocument[]}> => request(`${manage}/documents`);
+export const uploadPolicyDocument = (file:File,clientId:string):Promise<{id:string;duplicate:boolean}> => {
+  const form=new FormData();form.append("file",file);if(clientId)form.append("clientId",clientId);
+  return request(`${manage}/documents`,{method:"POST",body:form});
+};
+export const fetchPolicyDocument = (id:string):Promise<import("../../shared/portfolio").PolicyDocument> => request(`${manage}/documents/${encodeURIComponent(id)}`);
+export const extractPolicyDocument = (id:string,forceOcr=false,password="") => post(`${manage}/documents/${encodeURIComponent(id)}/extract`,{forceOcr,password});
+export const assignPolicyDocument = (id:string,clientId:string) => post(`${manage}/documents/${encodeURIComponent(id)}/assign`,{clientId});
+export const openPolicyOriginal = (id:string):Promise<{url:string}> => request(`${manage}/documents/${encodeURIComponent(id)}/original`);
+export const fetchSnapshot = (id:string,offset:number):Promise<{id:string; rows:Record<string,unknown>[]; total:number; offset:number;links:import("../../shared/portfolio").RowLink[]}> => request(`${manage}/snapshots/${encodeURIComponent(id)}?offset=${offset}`);
+export const saveRowLink = (body:unknown) => post(`${manage}/links`,body);
+export const removeRowLink = (body:unknown) => post(`${manage}/links/remove`,body);
+export const savePremiumMovement = (body:unknown) => post(`${manage}/movements`,body);
+export const fetchPolicyIndicators = (policyId:string,query:import('./lib/technicalTypes').ScopeQuery):Promise<import('./lib/technicalTypes').PolicyIndicators> => request(withQuery(`/report/policies/${encodeURIComponent(policyId)}/monthly`,query));
+export const calculatePolicyRenewal = (policyId:string,query:import('./lib/technicalTypes').ScopeQuery,scenarios:unknown[]):Promise<import('./lib/technicalTypes').RenewalResults> => post(withQuery(`/report/policies/${encodeURIComponent(policyId)}/renewal-scenarios`,query),{scenarios});
+export const fetchTechnicalReviews = (policyId:string,query:import('./lib/technicalTypes').ScopeQuery):Promise<{reviews:import('../../shared/technicalReview').TechnicalReview[];reviewStorageAvailable:boolean}> => request(withQuery(`/report/policies/${encodeURIComponent(policyId)}/reviews`,query));
+export const saveTechnicalReview = (policyId:string,query:import('./lib/technicalTypes').ScopeQuery,body:unknown) => post(withQuery(`/report/policies/${encodeURIComponent(policyId)}/reviews`,query),body);
+export const requestPolicyAnalysis = (policyId:string,query:import('./lib/technicalTypes').ScopeQuery,kind:'monthly'|'conclusions'):Promise<import('../../shared/analysis').PolicyAnalysis> => post(withQuery(`/report/policies/${encodeURIComponent(policyId)}/analysis/${kind}`,query),{});
+export const readPolicyAnalysis = (policyId:string,query:import('./lib/technicalTypes').ScopeQuery,kind:'monthly'|'conclusions'):Promise<import('../../shared/analysis').PolicyAnalysis> => request(withQuery(`/report/policies/${encodeURIComponent(policyId)}/analysis/${kind}`,query));
+
+export const readPolicyAnalysisExport = (policyId:string,query:import('./lib/technicalTypes').ScopeQuery,month?:string):Promise<{analysis:import('../../shared/analysis').PolicyAnalysis;monthly:import('../../shared/analysis').PolicyAnalysis|null;indicators:import('./lib/technicalTypes').PolicyIndicators}> => request(withQuery(`/report/policies/${encodeURIComponent(policyId)}/analysis/export`,{...query,...(month?{month}:{})}));
+
+export const previewPolicyPage = (id:string,page:number,password=""):Promise<Blob> => request(`${manage}/documents/${encodeURIComponent(id)}/pages/${page}/preview`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password})},true);

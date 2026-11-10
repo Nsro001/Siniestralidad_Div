@@ -80,3 +80,17 @@
 - Configuración de nombre de corredora y logos por cliente en administración; nueva migración `202610010001_report_branding.sql`, tipos compartidos y endpoints protegidos.
 - Pruebas de reglas de negocio, casos insuficientes, logos y RLS; ampliadas pruebas HTTP para los endpoints nuevos. Migración y despliegue remoto pendientes; sin commit ni push.
 - Validación local: builds frontend/backend y TypeScript correctos; 33 tests aprobados (HTTP con puerto local habilitado). PDF sintético verificado en Chromium: portada página 1, resumen página 2, conclusión página 3, sin controles. Pendiente validación con logos y datos reales.
+
+## 2026-10-30 — Administración de cartera (local)
+- Clientes manuales o desde revisión de PDF; siete pestañas y múltiples pólizas/aseguradoras, coberturas, planes, grupos y condiciones con evidencia.
+- Inicio de vigencia desde contratos verificados, todas las fechas, filtros y orden ascendente/descendente; primas e indicadores históricos conservados.
+- Extracción PDF/tablas y OCR locales, originales privados y revisión por página; sin servicios externos de extracción.
+- Versiones contractuales, renovaciones/endosos, identidad RUT/alias, snapshots, conciliación por versión, cobros/facturación/ajustes separados y auditoría.
+- Migraciones aditivas y SQL consolidado con instrucciones de aplicación, reversión y reactivación sin borrar datos.
+- Validación local con Node/PGlite, navegador/fixtures sintéticos y PDF digital/escaneado mediante Poppler/Tesseract reales. Pendiente aplicación autorizada y prueba en Supabase de desarrollo antes de producción.
+
+## 2026-10-30 — Formatos actuales y logo oficial
+- Primas: lectura de RUT y DV separados. Gastos: períodos mixtos YYYYMM/fecha local sin años expandidos.
+- Preservación del plan de origen, marca de clasificación histórica por revisar y aviso para planes desconocidos. Cliente solo con gastos consultable sin prima ni vigencia inventadas.
+- Logo PNG proporcionado por el usuario en reportes, portada, presentación y PDF, con proporciones completas y convivencia con logos de clientes/corredoras.
+- Guía ajustada para utilizar el Supabase actual con sus datos de prueba. Validación de los dos archivos originales en PostgreSQL aislado, sin pérdida de filas ni publicación en Supabase.

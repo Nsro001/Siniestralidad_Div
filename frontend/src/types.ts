@@ -9,7 +9,7 @@ export type PrimasReport = {
   insuredEvolution?: Array<{ period: string; holders: number | null; dependents: number | null }>;
   series: Array<{
     coverage: string;
-    series: Array<{ period: string; premiumUf: number; spendUf: number; previousPeriod?: string; previousLossRatio?: number | null }>;
+    series: Array<{ period: string; premiumUf: number|null; spendUf: number|null;lossRatio?:number|null;qualityStatus?:string; previousPeriod?: string; previousLossRatio?: number | null }>;
   }>;
 };
 
@@ -68,5 +68,8 @@ export type PortfolioClient = {
   insured: Array<{ policy: string; coverage: string; holders: number | null; dependents: number | null }>;
   holders: number | null; dependents: number | null; firstPeriod: string | null;
   renewals: string[];
+  startsOn: string | null; reportName: string; portfolioStatus: string;
+  policies: Array<{id:string; versionId:string; number:string; insurer:string; startsOn:string; endsOn:string; coverages:string[]; state:string}>;
+  policyDates: Array<{policyId:string; revision:number; number:string; insurer:string; startsOn:string; endsOn:string; changeType:string}>;
 };
 export type Portfolio = { clients: PortfolioClient[] };

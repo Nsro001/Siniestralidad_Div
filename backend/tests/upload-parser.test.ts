@@ -43,3 +43,17 @@ test("la carga mantiene compatibilidad XLS y rechaza archivos vacíos o columnas
   await assert.rejects(parseUpload(Buffer.alloc(0), "gastos"));
   await assert.rejects(parseUpload(workbook([{ incorrecto: 1 }]).buffer(), "gastos"), /Headers/);
 });
+
+test("primas: RUT y DV separados, incluso RUT cortos de prueba, sin duplicar un DV existente", async () => {
+  const source={"Nombe Cliente":"Cliente",Periodo:202505,Cobertura:"Salud","Prima UF":100,"Gasto UF":10,"Rut Cliente":12345678,DV:5};
+  const file=workbook([source,{...source,"Rut Cliente":1,DV:9},{...source,"Rut Cliente":"12.345.678-5",DV:5}]).buffer();
+  const rows=await parseUpload(file,'primas','primas.xlsx');
+  assert.deepEqual(rows.map(r=>r.clientRut),['12345678-5','1-9','12.345.678-5']);
+  assert.deepEqual(rows.map(r=>r.period),['2025-05','2025-05','2025-05']);
+});
+
+test("gastos: conserva el plan desconocido y marca la clasificación histórica para revisión", async () => {
+  const rows=await parseUpload(Buffer.from('Nombre Con;PERIODO;Clasif.Cob;Reembolso;Desc.Plan\nA;202505;Consulta;10;NO INFORMADO\nA;202505;Consulta;20;COLECTIVO DENTAL'),'gastos','gastos.csv');
+  assert.equal(rows[0].sourcePlan,'NO INFORMADO');assert.equal(rows[0].coverageInferred,true);assert.equal(rows[0].coverage,'Salud');
+  assert.equal(rows[1].coverageInferred,false);assert.equal(rows[1].coverage,'Dental');
+});

@@ -14,3 +14,6 @@ node_modules/
 
 # Sábanas locales con datos de clientes
 archivos_corregidos/
+
+# Validación documental privada (anotaciones y resultados, sin PDF originales)
+.local-validation/

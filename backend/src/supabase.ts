@@ -50,13 +50,13 @@ export function databaseError(error: { code?: string } | null) {
     error.code === "42501" ? "No tienes permiso para realizar esta operación." : "No se pudo completar la operación en la base de datos.");
 }
 // No truncar listas por el límite de respuestas de PostgREST.
-export async function allRows(db: SupabaseClient, table: string, columns: string, order: string) {
+export async function allRows(db: SupabaseClient, table: string, columns: string, order: string, onError = databaseError) {
   const rows: Record<string, any>[] = [];
   for (let offset = 0; ; offset += 500) {
     let query = db.from(table).select(columns);
     for (const column of order.split(",")) query = query.order(column);
     const { data, error } = await query.range(offset, offset + 499);
-    databaseError(error);
+    onError(error);
     rows.push(...(data ?? []));
     if (!data || data.length < 500) return rows;
   }

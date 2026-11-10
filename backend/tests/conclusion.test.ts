@@ -13,10 +13,11 @@ test('mes de vigencia usa calendario, aniversarios y selección histórica, no c
  assert.equal(validity(['2024-11','2025-08','2025-11'],['2024-11','2025-11'])?.mixed,true);
  assert.equal(validity([],['2025-01']),null);
 });
-test('renovación calcula incremento, descuento y equilibrio desde el mes 10',()=>{
+test('renovación empresarial no convierte diferencias de siniestralidad en ofertas o reajustes',()=>{
  for (const n of [10, 12]) {
-  for (const [spend, expected] of [[92.6, /incremento técnico de 17,6%/], [68, /descuento técnico de 7%/], [75, /no se espera incremento ni descuento/]] as const) {
-   assert.match(conclusion(n, spend).sections.at(-1)!.text, expected);
+  for (const spend of [92.6, 68, 75]) {
+   assert.match(conclusion(n, spend).sections.at(-1)!.text, /No se puede calcular/);
+   assert.doesNotMatch(conclusion(n, spend).sections.at(-1)!.text, /incremento técnico de|descuento técnico de|75%/);
   }
  }
 });
@@ -58,7 +59,7 @@ test('meses 1 a 9 no recomiendan tarifa aunque superen el 75%',()=>{
  for (const n of [1,9]) {
   const r=conclusion(n,120);
   assert.doesNotMatch(r.sections.map(s=>s.text).join(' '),/incremento técnico de|descuento técnico de|75%/);
-  assert.match(r.sections.at(-1)!.text,/desde el mes 10/);
+  assert.match(r.sections.at(-1)!.text,/supuestos técnicos explícitos/);
  }
 });
 test('mes 10 con huecos o coberturas incompletas requiere revisión',()=>{

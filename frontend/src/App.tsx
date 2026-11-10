@@ -1,3 +1,4 @@
+import BrandLogo from "./components/BrandLogo";
 import ExecutiveConclusion from "./components/ExecutiveConclusion";
 import ReportCover from "./components/ReportCover";
 import type { ExecutiveConclusion as Conclusion, ReportBranding } from "../../shared/executive";
@@ -102,6 +103,7 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
   const [dataVersion, setDataVersion] = useState(0);
   const [uploadMode, setUploadMode] = useState<"replace" | "merge">("replace");
   const [uploading, setUploading] = useState(false);
+  const [uploadNotice, setUploadNotice] = useState("");
   const readyForFilters = filters !== null;
 
   useEffect(() => {
@@ -133,8 +135,9 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
     const coverages = filters.coveragesByClient[selectedClient] ?? [];
     const periods = filters.periodsByClient[selectedClient] ?? [];
     setSelectedCoverages(coverages);
-    setPeriodPreset("vigencia");
-    setSelectedPeriods(getCurrentValidity(filters.premiumPeriodsByClient?.[selectedClient] ?? periods));
+    const premiumPeriods = filters.premiumPeriodsByClient?.[selectedClient] ?? [];
+    setPeriodPreset(premiumPeriods.length ? "vigencia" : "rolling12");
+    setSelectedPeriods(premiumPeriods.length ? getCurrentValidity(premiumPeriods) : getRolling12(periods));
   }, [filters, selectedClient]);
 
   useEffect(() => {
@@ -221,13 +224,14 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
   );
 
   const handleUpload = async (endpoint: "/upload/primas" | "/upload/gastos", file: File) => {
-    setError(null); setUploading(true);
+    setError(null); setUploadNotice(""); setUploading(true);
     try {
       const response = await uploadFile(endpoint, file, uploadMode);
       if (response.status !== "ok") {
         setError(response.error ?? "Error al cargar archivo.");
         return;
       }
+      setUploadNotice([`${response.rows} filas cargadas correctamente.`, ...(response.warnings ?? [])].join(" "));
       if (endpoint === "/upload/primas") setPremiumUploaded(true);
       else setClaimsUploaded(true);
       setDataVersion(value => value + 1);
@@ -238,7 +242,7 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
 
   const applyPeriodPreset = (preset: Exclude<PeriodPreset, "custom">) => {
     setPeriodPreset(preset);
-    if (preset === "vigencia") setSelectedPeriods(getCurrentValidity(filters?.premiumPeriodsByClient?.[selectedClient] ?? availablePeriods));
+    if (preset === "vigencia") setSelectedPeriods(getCurrentValidity(filters?.premiumPeriodsByClient?.[selectedClient] ?? []));
     if (preset === "rolling12") setSelectedPeriods(getRolling12(availablePeriods));
     if (preset === "all") setSelectedPeriods([...availablePeriods].sort());
   };
@@ -278,8 +282,10 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
 
   return (
     <main className="ng-report-page min-h-screen px-6 py-10 md:px-12">
+      <p className="account-muted mb-4">Consolidado empresarial · puede reunir varias pólizas. Base del gasto: no determinada en este agregado. Los reembolsos no acreditan siniestros incurridos. Para aislar una póliza utiliza Administración de cartera → Indicadores por póliza.</p>
       <header className="no-print mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
+          <BrandLogo interior />
           <p className="text-sm uppercase tracking-[0.3em] text-moss">Siniestralidad colectivos</p>
           <h1 className="font-display text-3xl md:text-4xl text-ink">Informe de Siniestralidad</h1>
         </div>
@@ -313,7 +319,7 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
       {downloadError && <p role="alert" className="no-print mb-4 text-sm text-ember">{downloadError}</p>}
 
       {profile.role === "admin" && <>
-      <p className="no-print mb-4 text-sm text-ink/70">Máximo 30 MB por archivo. Para gastos grandes se recomienda CSV UTF-8, separado por coma o punto y coma; también se acepta Excel. El resumen de cartera muestra los clientes con primas cargadas.</p>
+      <p className="no-print mb-4 text-sm text-ink/70">Máximo 30 MB por archivo. Para gastos grandes se recomienda CSV UTF-8, separado por coma o punto y coma; también se acepta Excel. La cartera incluye clientes con y sin primas. Las primas admiten RUT y DV separados; los gastos admiten períodos como 202505 o 01/05/25.</p>
       <label className="no-print block mb-4">Tipo de carga <select value={uploadMode} disabled={uploading} onChange={event => setUploadMode(event.target.value as "replace" | "merge")}><option value="replace">Reemplazar la sábana completa</option><option value="merge">Actualizar solo los clientes del archivo</option></select><span className="block text-sm mt-2">{uploadMode === "replace" ? "Se reemplazan todos los datos del tipo cargado (primas o gastos), incluidos los de clientes ausentes del nuevo archivo. Carga ambos archivos para renovar ambas sábanas." : "Se conservan los datos de los clientes que no aparecen en el archivo."}</span></label>
       <section className="no-print grid gap-6 md:grid-cols-2">
         <div className="glass-panel rounded-3xl p-6 shadow-soft-xl">
@@ -347,6 +353,7 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
           <p className="mt-3 text-xs text-ink/70">Carga en esta sesión: {claimsUploaded ? "Completada" : "Sin cargas nuevas"}</p>
         </div>
       </section>
+      {uploadNotice && <p className="no-print mt-3" role="status">{uploadNotice}</p>}
       {uploading && <p className="no-print mt-3" role="status">Procesando y guardando sábana…</p>}
       </>}
 
@@ -396,7 +403,7 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
 
         <div className="mt-5 flex flex-wrap items-center gap-2">
           <span className="mr-2 text-xs font-semibold uppercase tracking-[0.2em] text-ink/55">Vista rápida</span>
-          <button className={presetButtonClass("vigencia")} onClick={() => applyPeriodPreset("vigencia")} disabled={!selectedClient}>
+          <button className={presetButtonClass("vigencia")} onClick={() => applyPeriodPreset("vigencia")} disabled={!selectedClient || !filters?.premiumPeriodsByClient?.[selectedClient]?.length}>
             Vigencia actual
           </button>
           <button className={presetButtonClass("rolling12")} onClick={() => applyPeriodPreset("rolling12")} disabled={!selectedClient}>
@@ -408,7 +415,7 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
           <span className={presetButtonClass("custom")}>Personalizado</span>
         </div>
         <p className="mt-3 text-xs text-ink/55">
-          La vigencia se estima usando como mes de renovación el primer mes disponible en la sábana de primas. Es una estimación y debe contrastarse con la vigencia contractual.
+          {filters?.premiumPeriodsByClient?.[selectedClient]?.length ? "La vigencia se estima usando como mes de renovación el primer mes disponible en la sábana de primas. Es una estimación y debe contrastarse con la vigencia contractual." : "Este cliente no tiene primas cargadas. Se muestran los últimos períodos de gastos disponibles; puedes seleccionar otros meses sin estimar una vigencia contractual."}
         </p>
         {error && <p className="mt-4 text-sm text-ember">{error}</p>}
         {brandingError && <p role="alert" className="mt-4 text-sm text-ember">{brandingError} La exportación PDF requiere cargar la portada.</p>}

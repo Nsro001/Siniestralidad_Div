@@ -1,4 +1,6 @@
 import cors from "cors";
+import { policyScopeRouter } from "./policyScopeRoute.js";
+import { portfolioRouter } from "./portfolioAdmin.js";
 import { buildExpenseExport } from "./expenseExport.js";
 import { buildConclusion } from "./conclusion.js";
 import { validateBranding } from "./branding.js";
@@ -36,6 +38,15 @@ export function createApp(verifySession = authenticate) {
     next();
   }));
   app.use(express.json({ limit: "5mb" }));
+  app.use('/report', (req, res, next) => {
+    if (!req.path.startsWith('/policies/')) {
+      res.setHeader('X-Report-Scope', 'company');
+      if (['policyId', 'policy_id', 'policy', 'policies', 'policyIds', 'insurer', 'insurerId', 'insurer_key', 'premiumSnapshotId', 'expenseSnapshotId'].some(k => Object.hasOwn(req.query, k))) {
+        return next(new HttpError(400, 'Este reporte agrega la empresa y no filtra pólizas. Usa /report/policies/:policyId/monthly con snapshots explícitos.'));
+      }
+    }
+    next();
+  });
 
   app.post("/upload/primas", adminOnly, upload.single("file"), asyncRoute(async (req, res) => {
     const file = req.file;
@@ -56,12 +67,15 @@ export function createApp(verifySession = authenticate) {
     try {
       const rows = await parseUpload(file.buffer, "gastos", file.originalname);
       await saveRows(res.locals.auth.db, "gastos", rows, req.body?.mode === "replace");
-      return res.json({ status: "ok", rows: rows.length });
+      const inferred = rows.filter(row => row.coverageInferred).length;
+      return res.json({ status: "ok", rows: rows.length, warnings: inferred ? [`${inferred} filas tienen un plan sin cobertura reconocible. Se conserva la clasificación histórica en Salud; revisa el plan de origen antes de interpretar resultados por cobertura.`] : [] });
     } catch (error) {
       if (error instanceof HttpError) throw error;
       return res.status(400).json({ error: "No se pudo leer el archivo. Usa Excel o CSV UTF-8 y revisa su formato y columnas." });
     }
   }));
+
+  if (process.env.PORTFOLIO_ADMIN_ENABLED !== "false") app.use("/portfolio/manage", portfolioRouter());
 
   app.get("/portfolio", asyncRoute(async (_req, res) => {
     res.json(await getPortfolio(res.locals.auth.db));
@@ -71,6 +85,8 @@ export function createApp(verifySession = authenticate) {
     const filters = await getFilters(res.locals.auth.db);
     res.json(filters);
   }));
+
+  app.use('/report/policies', policyScopeRouter());
 
   app.get("/report/conclusion", asyncRoute(async (req, res) => {
     const client = String(req.query.client ?? "");
@@ -228,7 +244,7 @@ export function createApp(verifySession = authenticate) {
   }));
   const handleError: ErrorRequestHandler = (error, _req, res, _next) => {
     if (error instanceof HttpError) return res.status(error.status).json({ error: error.message });
-    if (error instanceof multer.MulterError) return res.status(400).json({ error: "Carga un único archivo Excel o CSV UTF-8 de hasta 30 MB." });
+    if (error instanceof multer.MulterError) return res.status(400).json({ error: _req.path.includes("/documents") ? "Carga un único PDF de hasta 20 MB." : "Carga un único archivo Excel o CSV UTF-8 de hasta 30 MB." });
     if (error?.type === "entity.parse.failed") return res.status(400).json({ error: "Solicitud inválida." });
     if (error?.type === "entity.too.large") return res.status(413).json({ error: "La solicitud supera el tamaño permitido." });
     res.status(500).json({ error: "No se pudo completar la operación. Intenta nuevamente." });

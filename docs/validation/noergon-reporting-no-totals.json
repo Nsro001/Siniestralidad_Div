@@ -1,0 +1,104 @@
+{
+  "reportingComparison": {
+    "equal": true,
+    "scenarios": 20,
+    "excel": "Igualdad de celdas/filas/estilos y configuración; no ZIP/fechas volátiles",
+    "protectedSourceHashesUnchanged": true
+  },
+  "pdf": {
+    "normalizedBytesEqual": true,
+    "normalizedSha256": [
+      "816db0b91be96bfa6f9630a40341c86b4bf429a5d92d93c5912f72f9831f7067",
+      "816db0b91be96bfa6f9630a40341c86b4bf429a5d92d93c5912f72f9831f7067"
+    ],
+    "pages": [
+      {
+        "page": 1,
+        "identicalPixels": true,
+        "sha256": "f79bb15f5bbbd91b54fb8bfb4aad59fcfb2d83018dadf8940d9492e52f830a86"
+      },
+      {
+        "page": 2,
+        "identicalPixels": true,
+        "sha256": "e358c8057ca8880a7a96aa762de15c40f431064efe711cb32fd5e5ff57ae2163"
+      }
+    ],
+    "samePageCount": true
+  },
+  "contractReference": {
+    "method": "Transcripción manual de tablas originales; muestra dirigida sin anotador independiente. Vida p4/p7, Salud p8/p17 y Consorcio p6/p7. Campos ausentes anotados vacíos sin inferir unidades ni frecuencias.",
+    "sampleSize": 62,
+    "excludedAggregates": 3,
+    "metrics": {
+      "value": {
+        "correct": 62,
+        "wrong": 0,
+        "missing": 0,
+        "ambiguous": 0,
+        "total": 62,
+        "precision": 1,
+        "recall": 1
+      },
+      "currency": {
+        "correct": 62,
+        "wrong": 0,
+        "missing": 0,
+        "ambiguous": 0,
+        "total": 62,
+        "precision": 1,
+        "recall": 1
+      },
+      "periodicity": {
+        "correct": 62,
+        "wrong": 0,
+        "missing": 0,
+        "ambiguous": 0,
+        "total": 62,
+        "precision": 1,
+        "recall": 1
+      },
+      "rateUnit": {
+        "correct": 62,
+        "wrong": 0,
+        "missing": 0,
+        "ambiguous": 0,
+        "total": 62,
+        "precision": 1,
+        "recall": 1
+      }
+    },
+    "documents": {
+      "consorcio": {
+        "pages": 52,
+        "tariffCells": 0,
+        "rateCells": 8,
+        "capitalCells": 4,
+        "missingRequired": [
+          "insurer",
+          "currency"
+        ]
+      },
+      "vida": {
+        "pages": 14,
+        "tariffCells": 12,
+        "rateCells": 4,
+        "capitalCells": 4,
+        "missingRequired": [
+          "periodicity",
+          "currency"
+        ]
+      },
+      "salud": {
+        "pages": 26,
+        "tariffCells": 30,
+        "rateCells": 0,
+        "capitalCells": 0,
+        "missingRequired": [
+          "periodicity",
+          "currency"
+        ]
+      }
+    }
+  },
+  "tests": 182
+}

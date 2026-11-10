@@ -4,7 +4,7 @@ import { buildGastosReport } from './report.js';
 const COV = ['Salud', 'Dental', 'Catastrófico'];
 const CONS = 'Consolidado S+D+C';
 // Parámetros de seguimiento descriptivo; no son tarifas ni probabilidades actuariales.
-export const CONCLUSION_RULES = { equilibrium: 75, nearBand: 2, trendPoints: 2, prestationShare: 30, providerShare: 20, insuredShare: 20 };
+export const CONCLUSION_RULES = { trendPoints: 2, prestationShare: 30, providerShare: 20, insuredShare: 20 };
 const index = (p: string) => Number(p.slice(0, 4)) * 12 + Number(p.slice(5, 7)) - 1;
 const period = (n: number) => `${Math.floor(n / 12)}-${String(n % 12 + 1).padStart(2, '0')}`;
 export function validity(available: string[], selected: string[]) {
@@ -38,11 +38,10 @@ export function buildConclusion(premiums: PremiumRow[], expenses: ExpenseRow[], 
   const scopeCoverages = [...new Set(rows.map(r => r.coverage))];
   const coverageComplete = selected.every(p => scopeCoverages.every(c => rows.some(r => r.period === p && r.coverage === c)));
   if (!coverageComplete) notes.push('Faltan registros mensuales de una o más coberturas: la evaluación de vigencia completa requiere revisión.');
-  const fullValidity = !!v && !v.mixed && contiguous && selected[0] === v.start && complete && coverageComplete;
   if (!complete) notes.push('Faltan meses con prima positiva o hay importes no válidos; la evaluación de vigencia completa requiere revisión.');
   if (v?.mixed) notes.push('La selección abarca más de una vigencia: el cálculo técnico corresponde al conjunto de meses seleccionados.');
   if (!contiguous || (v && selected[0] !== v.start)) notes.push('La selección no cubre de forma continua la vigencia hasta el corte.');
-  if (!consolidated) notes.push('El análisis describe las coberturas seleccionadas; el cálculo técnico de renovación utiliza el consolidado Salud + Dental + Catastrófico.');
+  notes.push('Este reporte agrega la empresa y no acredita aislamiento por póliza. La renovación requiere el motor por póliza con snapshots verificados y supuestos explícitos.');
   const availableCov = new Set(own.filter(r => selected.includes(r.period)).map(r => r.coverage));
   const missingCov = COV.filter(c => !availableCov.has(c));
   if (missingCov.length) notes.push(`Sin registros de ${missingCov.join(', ')}; confirmar si corresponde a cobertura no contratada o información faltante.`);
@@ -75,10 +74,8 @@ export function buildConclusion(premiums: PremiumRow[], expenses: ExpenseRow[], 
     else focuses.push('Historia insuficiente para comparar el gasto con el mismo período anterior completo.');
     if (growth.length) recommendations.push(`Seguir la evolución de ${growth.map(g=>g.prestation).join(' y ')}.`);
   } else focuses.push('No hay gasto positivo analizable; no permite inferir ausencia de riesgo.');
-  const eligible = !!v && v.month >= 10 && fullValidity && consolidated && !missingCov.length && ratio !== null;
   let risk = delta === null ? 'Riesgo no concluyente por historia insuficiente.' : delta > CONCLUSION_RULES.trendPoints ? 'Riesgo creciente: aumenta la siniestralidad reciente.' : 'Sin aumento relevante de siniestralidad reciente; mantener seguimiento preventivo.';
   if (concentration) risk += ' Existe concentración relevante de gasto que requiere seguimiento.';
-  if (eligible && ratio! >= CONCLUSION_RULES.equilibrium - CONCLUSION_RULES.nearBand) risk += ' Existe presión sobre el equilibrio de renovación.';
   const sections = [
     { title: 'Estado general', text: `${consolidated ? 'Consolidado Salud + Dental + Catastrófico' : scope.join(' + ')}: ${ratio === null ? 'sin prima suficiente para calcular siniestralidad' : `siniestralidad observada ${fmt(ratio)}%`}; prima ${fmt(sum.premium)} UF y gasto ${fmt(sum.spend)} UF. ${v ? `Mes ${v.month} estimado al corte, desde ${v.start}.` : 'No se pudo determinar el mes de vigencia.'}` },
     { title: 'Tendencia', text: trend },
@@ -86,21 +83,6 @@ export function buildConclusion(premiums: PremiumRow[], expenses: ExpenseRow[], 
     { title: 'Nivel de riesgo', text: risk },
     { title: 'Recomendaciones de gestión', text: recommendations.join(' ') },
   ];
-  const renewalRows = own.filter(r => selected.includes(r.period));
-  const renewal = totals(renewalRows);
-  const canEstimate = selected.length > 0 && selected.every(p => renewalRows.some(r => r.period === p))
-    && renewal.premium > 0 && renewal.spend >= 0 && Number.isFinite(renewal.premium) && Number.isFinite(renewal.spend)
-    && renewalRows.every(r => Number.isFinite(r.premiumUf) && Number.isFinite(r.spendUf));
-  if (canEstimate && v && v.month >= 10 && fullValidity && !missingCov.length) {
-    const consolidatedRatio = renewal.spend / renewal.premium * 100;
-    const adjustment = Math.round((consolidatedRatio - CONCLUSION_RULES.equilibrium) * 10) / 10;
-    const expectation = adjustment > 0
-      ? `se puede esperar un incremento técnico de ${fmt(adjustment)}% en la próxima renovación`
-      : adjustment < 0 ? `se puede esperar un descuento técnico de ${fmt(Math.abs(adjustment))}% en la próxima renovación`
-      : 'no se espera incremento ni descuento técnico en la próxima renovación por este cálculo';
-    sections.push({ title: 'Consideraciones para renovación', text: `En base a la siniestralidad consolidada Salud + Dental + Catastrófico del cliente en los meses seleccionados (${fmt(consolidatedRatio)}%), menos el 75% de siniestralidad de equilibrio, ${expectation}. Cálculo: ${fmt(consolidatedRatio)}% − 75% = ${fmt(adjustment)} puntos porcentuales, aplicados como porcentaje de ajuste técnico según esta regla.` });
-  } else {
-    sections.push({ title: 'Consideraciones para renovación', text: 'No se puede calcular el incremento o descuento técnico en esta selección. La referencia de equilibrio de renovación se evalúa desde el mes 10 estimado, con vigencia continua, primas válidas e información consolidada suficiente. Antes de ese corte, priorizar tendencias y seguimiento del gasto.' });
-  }
+  sections.push({ title: 'Consideraciones para renovación', text: 'No se puede calcular una proyección de renovación desde este agregado empresarial. Se requiere aislar una póliza y su vigencia, conciliar primas y reembolsos, confirmar la completitud y proporcionar supuestos técnicos explícitos al motor de escenarios. No hay tasas de renovación predeterminadas.' });
   return { month: v?.month ?? null, validityStart: v?.start ?? null, notes, sections };
 }

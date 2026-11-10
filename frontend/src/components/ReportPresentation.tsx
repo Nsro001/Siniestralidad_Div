@@ -20,7 +20,7 @@ export function SlideFrame({ slide, client, periods, branding, page, total }: { 
     measure(); return () => observer.disconnect();
   }, [slide.content]);
   return <article className={`report-slide ${slide.id === 'cover' ? 'slide-cover' : ''}`}>
-    {slide.id !== 'cover' && <header className="slide-heading"><div><p>{client} · {formatReportPeriods(periods)}</p><h2>{slide.title}</h2></div><BrandLogo interior src={branding.interior_logo}/></header>}
+    {slide.id !== 'cover' && <header className="slide-heading"><div><p>{client} · {formatReportPeriods(periods)}</p><h2>{slide.title}</h2></div><div className="slide-brands"><BrandLogo interior/>{branding.interior_logo && <BrandLogo interior src={branding.interior_logo}/>}</div></header>}
     <div className="slide-body" ref={area}><div ref={inner} style={{transform:`scale(${scale})`,transformOrigin:'top left'}}>{slide.content}</div></div>
     <footer className="slide-footer"><span>NOERGON · Analítica de siniestralidad</span><span>{String(page).padStart(2,'0')} / {String(total).padStart(2,'0')}</span></footer>
   </article>;

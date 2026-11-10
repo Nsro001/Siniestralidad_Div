@@ -9,6 +9,6 @@ export default function ReportCover({ client, coverages, periods, branding, gene
     <div className="cover-logos"><div><BrandLogo src={branding.broker_logo}/>{branding.broker_name && <p>{branding.broker_name}</p>}</div><div>{branding.client_logo&&<img src={branding.client_logo} alt={`Logo de ${client}`}/>}</div></div>
     <div className="cover-title"><p>Informe de Siniestralidad</p><h1>{client}</h1><h2>{subtitle}</h2></div>
     <dl><dt>Período analizado</dt><dd>{continuous ? `${sorted[0]} a ${sorted.at(-1)}` : sorted.join(' · ')}</dd><dt>Fecha de generación</dt><dd>{generated.toLocaleDateString('es-CL',{timeZone:'America/Santiago'})}</dd><dt>KAM a cargo</dt><dd>{branding.kam_name}</dd></dl>
-    <footer><strong>NOERGON</strong><span>Proveedor tecnológico</span></footer>
+    <footer><BrandLogo interior/><span>Proveedor tecnológico</span></footer>
   </section>;
 }

@@ -133,11 +133,11 @@ test("API: exige sesión, bloquea administración/carga y rechaza clientes ajeno
   const base = `http://127.0.0.1:${address.port}`;
   try {
     assert.equal((await fetch(`${base}/health`)).status, 200);
-    for (const path of ["/report/gastos/download", "/report/conclusion", "/report/branding", "/report/monthly", "/portfolio", "/filters", "/report/primas", "/report/gastos", "/report/claimants", "/admin/users", "/me"]) {
+    for (const path of ["/report/gastos/download", "/report/conclusion", "/report/branding", "/report/monthly", "/portfolio", "/portfolio/manage/clients", "/portfolio/manage/documents", "/filters", "/report/primas", "/report/gastos", "/report/claimants", "/admin/users", "/me"]) {
       assert.equal((await fetch(base + path)).status, 401, path);
       assert.equal((await fetch(base + path, {headers:{Authorization:"Bearer invalid"}})).status, 401, path);
     }
-    for (const path of ["/upload/primas", "/upload/gastos", "/admin/users"]) {
+    for (const path of ["/upload/primas", "/upload/gastos", "/admin/users", "/portfolio/manage/clients", "/portfolio/manage/documents", `/portfolio/manage/clients/${other}/policies`, `/portfolio/manage/documents/${other}/extract`, `/portfolio/manage/documents/${other}/assign`, "/portfolio/manage/links", "/portfolio/manage/movements"]) {
       const response = await fetch(base + path, {method:"POST", headers:{Authorization:"Bearer valid"}});
       assert.equal(response.status, 403, path);
     }
@@ -147,6 +147,13 @@ test("API: exige sesión, bloquea administración/carga y rechaza clientes ajeno
       assert.equal(response.headers.get("cache-control"), "no-store");
     }
     assert.equal((await fetch(`${base}/admin/report-branding?client=Otro`, {method:"PUT", headers:{Authorization:"Bearer valid"}})).status, 403);
+    for (const path of [`/portfolio/manage/clients/${other}`, `/portfolio/manage/documents/${other}`, `/portfolio/manage/documents/${other}/original`, `/portfolio/manage/snapshots/${other}`]) {
+      assert.equal((await fetch(base + path, {headers:{Authorization:"Bearer valid"}})).status,404,path);
+    }
+    const preview=`${base}/portfolio/manage/documents/${other}/pages/1/preview`;
+    assert.equal((await fetch(preview,{method:"POST"})).status,401);
+    assert.equal((await fetch(preview,{method:"POST",headers:{Authorization:"Bearer valid"}})).status,404,"RLS niega el original antes de descargar o renderizar");
+    assert.equal((await fetch(`${base}/portfolio/manage/documents/${other}/pages/81/preview`,{method:"POST",headers:{Authorization:"Bearer valid"}})).status,400);
     assert.ok(queried);
     assert.equal((await fetch(`${base}/me`, {headers:{Authorization:"Bearer valid"}})).status, 200);
   } finally { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }

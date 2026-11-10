@@ -87,8 +87,10 @@ const buildPeriodSeries = (rows: PremiumRow[], periods: string[]) => {
   }
   return periods.map((period) => ({
     period,
-    premiumUf: byPeriod.get(period)?.premiumUf ?? 0,
-    spendUf: byPeriod.get(period)?.spendUf ?? 0,
+    premiumUf: byPeriod.get(period)?.premiumUf ?? null,
+    spendUf: byPeriod.get(period)?.spendUf ?? null,
+    lossRatio: (byPeriod.get(period)?.premiumUf ?? 0)>0 ? byPeriod.get(period)!.spendUf/byPeriod.get(period)!.premiumUf : null,
+    qualityStatus: byPeriod.has(period) ? 'pending_validation' : 'incomplete',
     previousPeriod: previousYear(period),
     previousLossRatio: (byPeriod.get(previousYear(period))?.premiumUf ?? 0) > 0
       ? byPeriod.get(previousYear(period))!.spendUf / byPeriod.get(previousYear(period))!.premiumUf : null,

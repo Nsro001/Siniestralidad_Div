@@ -7,30 +7,32 @@ type Props = {
   periods: string[];
 };
 
-const fmtUf = (value: number) =>
+const fmtUf = (value: number|null) => value===null?'Sin datos':
   new Intl.NumberFormat("es-CL", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
 
-const fmtPct = (value: number) => `${(value * 100).toFixed(1)}%`;
+const fmtPct = (value: number|null) => value===null?'Sin datos':`${(value * 100).toFixed(1)}%`;
+const sumComplete=(values:Array<number|null>)=>!values.length||values.some(v=>v===null)?null:values.reduce<number>((sum,v)=>sum+v!,0);
+const ratio=(premium:number|null,spend:number|null)=>premium!==null&&premium>0&&spend!==null?spend/premium:null;
 
 const totalsFor = (report: PrimasReport, coverageName: string) => {
   const row = report.series.find((item) => item.coverage === coverageName);
   if (!row) return null;
-  const premiumUf = row.series.reduce((sum, item) => sum + item.premiumUf, 0);
-  const spendUf = row.series.reduce((sum, item) => sum + item.spendUf, 0);
-  return { coverage: coverageName, premiumUf, spendUf, lossRatio: premiumUf > 0 ? spendUf / premiumUf : 0 };
+  const premiumUf = sumComplete(row.series.map(item=>item.premiumUf));
+  const spendUf = sumComplete(row.series.map(item=>item.spendUf));
+  return { coverage: coverageName, premiumUf, spendUf, lossRatio: ratio(premiumUf,spendUf) };
 };
 
 export default function ExecutiveSummary({ report, claimants, periods }: Props) {
   const coverageRows = report.series
     .filter((item) => item.coverage !== "Consolidado S+D+C")
     .map((item) => {
-      const premiumUf = item.series.reduce((sum, row) => sum + row.premiumUf, 0);
-      const spendUf = item.series.reduce((sum, row) => sum + row.spendUf, 0);
+      const premiumUf = sumComplete(item.series.map(row=>row.premiumUf));
+      const spendUf = sumComplete(item.series.map(row=>row.spendUf));
       return {
         coverage: item.coverage,
         premiumUf,
         spendUf,
-        lossRatio: premiumUf > 0 ? spendUf / premiumUf : 0,
+        lossRatio: ratio(premiumUf,spendUf),
       };
     });
 
@@ -38,13 +40,13 @@ export default function ExecutiveSummary({ report, claimants, periods }: Props) 
     totalsFor(report, "Consolidado S+D+C") ??
     (() => {
       const eligible = coverageRows.filter((row) => ["Salud", "Dental", "Catastrófico"].includes(row.coverage));
-      const premiumUf = eligible.reduce((sum, row) => sum + row.premiumUf, 0);
-      const spendUf = eligible.reduce((sum, row) => sum + row.spendUf, 0);
+      const premiumUf = sumComplete(eligible.map(row=>row.premiumUf));
+      const spendUf = sumComplete(eligible.map(row=>row.spendUf));
       return {
         coverage: "Consolidado S+D+C",
         premiumUf,
         spendUf,
-        lossRatio: premiumUf > 0 ? spendUf / premiumUf : 0,
+        lossRatio: ratio(premiumUf,spendUf),
       };
     })();
 
@@ -76,8 +78,8 @@ export default function ExecutiveSummary({ report, claimants, periods }: Props) 
       </div>
 
       <div className="ng-summary-stats no-print">
-        <StatCard label="Prima consolidada" value={`${fmtUf(consolidated.premiumUf)} UF`} detail="Consolidado Salud, Dental y Catastrófico" />
-        <StatCard label="Gasto consolidado" value={`${fmtUf(consolidated.spendUf)} UF`} detail={periodLabel} />
+        <StatCard label="Prima consolidada" value={consolidated.premiumUf===null?'Sin datos':`${fmtUf(consolidated.premiumUf)} UF`} detail="Consolidado Salud, Dental y Catastrófico" />
+        <StatCard label="Gasto consolidado" value={consolidated.spendUf===null?'Sin datos':`${fmtUf(consolidated.spendUf)} UF`} detail={periodLabel} />
         <StatCard label="Siniestralidad consolidada" value={fmtPct(consolidated.lossRatio)} detail="Gasto / prima · período seleccionado" />
       </div>
 
