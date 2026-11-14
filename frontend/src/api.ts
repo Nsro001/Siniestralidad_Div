@@ -1,11 +1,12 @@
 import { supabase } from "./lib/supabase";
 import type { AccountProfile, AdminAccounts, FiltersResponse, Portfolio } from "./types";
 
-const API_BASE = import.meta.env.DEV ? "/api" : import.meta.env.VITE_API_URL?.replace(/\/$/, "") || "http://localhost:4000";
+const API_BASE = import.meta.env.DEV ? "/api" : import.meta.env.VITE_API_URL?.replace(/\/$/, "") || "";
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
 async function request(path: string, init: RequestInit = {}, binary = false) {
+  if (!API_BASE) throw new Error('Falta configurar la dirección del backend.');
   if (!supabase) throw new Error("El acceso aún no está configurado.");
   const { data: { session }, error } = await supabase.auth.getSession();
   if (error || !session) throw new ApiError(401, "Inicia sesión para continuar.");
@@ -51,3 +52,8 @@ export const fetchMonthlyDetail = (params: { client: string; coverage: string; p
 export const fetchConclusion = (params: Record<string, string>): Promise<import("../../shared/executive").ExecutiveConclusion> => request(withQuery("/report/conclusion", params));
 export const fetchBranding = (client: string): Promise<import("../../shared/executive").ReportBranding> => request(withQuery("/report/branding", { client }));
 export const saveBranding = (client: string, values: Omit<import("../../shared/executive").ReportBranding, "kam_name">) => request(withQuery("/admin/report-branding", { client }), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(values) });
+
+// Company analysis: authenticated backend figures only; never a browser provider key.
+export const readCompanyAnalysis = (kind: import('../../shared/companyNarrative').NarrativeKind, params: Record<string,string>): Promise<import('../../shared/companyNarrative').NarrativeBundle> => request(withQuery(`/report/analysis/${kind}`,params));
+export const generateCompanyAnalysis = (kind: import('../../shared/companyNarrative').NarrativeKind, params: Record<string,string>): Promise<import('../../shared/companyNarrative').NarrativeBundle> => request(withQuery(`/report/analysis/${kind}`,params),{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+export const downloadCompanyAnalysis = (params: Record<string,string>): Promise<Blob> => request(withQuery('/report/analysis/export',params),{},true);

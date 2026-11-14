@@ -5,7 +5,7 @@ import PortfolioDashboard from "./components/PortfolioDashboard";
 import Login from "./components/Login";
 import AdminAccounts from "./components/AdminAccounts";
 import { supabase } from "./lib/supabase";
-import { fetchMe } from "./api";
+import { ApiError, fetchMe } from "./api";
 import type { AccountProfile } from "./types";
 
 export default function AuthApp() {
@@ -32,11 +32,22 @@ export default function AuthApp() {
   useEffect(() => {
     if (!session) return;
     let cancelled = false;
-    const refresh = () => fetchMe().then(value => {
-      if (!cancelled) { setProfile(value); setIssue(""); }
-    }).catch(err => {
-      if (!cancelled) { setProfile(null); setIssue(err instanceof Error ? err.message : "No se pudo verificar el acceso."); }
-    });
+    let checking = false;
+    const refresh = async () => {
+      if (checking) return;
+      checking = true;
+      try {
+        const value = await fetchMe();
+        if (!cancelled) { setProfile(value); setIssue(""); }
+      } catch (err) {
+        if (!cancelled) {
+          // Keep the mounted upload on transient failures, but hide all account controls.
+          // Authentication/authorization failures always discard the cached profile.
+          if (!(err instanceof ApiError) || ![0, 502, 503, 504].includes(err.status)) setProfile(null);
+          setIssue(err instanceof Error ? err.message : "No se pudo verificar el acceso.");
+        }
+      } finally { checking = false; }
+    };
     void refresh();
     const interval = window.setInterval(refresh, 60000);
     window.addEventListener("focus", refresh);
@@ -64,10 +75,18 @@ export default function AuthApp() {
   if (!session) return <Login />;
   if (!profile || profile.id !== session.user.id) return <main className="account-ui login-page"><section className="glass-panel login-card">
     <p role={issue ? "alert" : "status"}>{issue || "Verificando tu cuenta…"}</p>
-    {issue && <button className="account-primary mt-4" onClick={() => { setIssue(""); setRetry(value => value + 1); }}>Reintentar conexión</button>}
+    {issue && <button className="account-primary mt-4" onClick={() => { setRetry(value => value + 1); }}>Reintentar conexión</button>}
     <button className="account-secondary mt-4" onClick={logout}>Salir</button>
   </section></main>;
-  return <div className="ng-shell">
+  return <>
+    {issue && <main className="account-ui login-page"><section className="glass-panel login-card">
+      <p role="alert">{issue}</p>
+      <p>La pantalla de trabajo se conserva. No repitas una carga sin confirmar su resultado. El acceso permanecerá bloqueado hasta verificar la conexión.</p>
+      <button className="account-primary mt-4" onClick={() => setRetry(value => value + 1)}>Reintentar conexión</button>
+      <button className="account-secondary mt-4" onClick={logout}>Salir</button>
+    </section></main>}
+    <div className="ng-shell" hidden={!!issue} style={issue ? {display:"none"} : undefined}>
+
     <a className="ng-skip-link no-print" href="#workspace">Ir al contenido</a>
     <header className="account-ui account-bar no-print">
       <div className="ng-sidebar-brand"><p className="ng-wordmark">NOERGON<span> / ANALYTICS</span></p><p className="ng-brand-caption">Analítica de siniestralidad</p></div>
@@ -92,5 +111,5 @@ export default function AuthApp() {
         </form>
       </section></main> : <App key={`${profile.id}-${reportClient}`} profile={profile} initialClient={reportClient} />}
     </div>
-  </div>;
+  </div></>;
 }

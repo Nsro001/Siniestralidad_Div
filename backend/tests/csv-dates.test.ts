@@ -32,3 +32,10 @@ test("CSV: primas y renovación, días mayores a 12, años completos y bisiestos
   assert.equal(rows[0].renewalDate, '2025-12-31');
   assert.equal(rows[1].renewalDate, '2024-02-29');
 });
+
+test("períodos YYYYMM numéricos y de texto se combinan con fechas locales sin años expandidos", async () => {
+  const csv='Nombre Con;PERIODO;Clasif.Cob;Reembolso;Desc.Plan\nA;202505;Consulta;1,5;SALUD\nA;01/05/25;Consulta;2,5;SALUD\nA;202601;Consulta;3;DENTAL\nA;202513;Consulta;9;SALUD';
+  const rows=await parseUpload(Buffer.from(csv),'gastos','gastos.csv');
+  assert.deepEqual(rows.map(r=>r.period),['2025-05','2025-05','2026-01']);
+  assert.equal(rows.reduce((n,r)=>n+r.reembolsoUf,0),7);
+});

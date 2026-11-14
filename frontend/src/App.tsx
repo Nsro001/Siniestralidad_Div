@@ -1,3 +1,4 @@
+import {useCompanyAnalysis,CompanyAnalysisView,CompanyAnalysisControls} from './components/CompanyAnalysis';
 import ExecutiveConclusion from "./components/ExecutiveConclusion";
 import ReportCover from "./components/ReportCover";
 import type { ExecutiveConclusion as Conclusion, ReportBranding } from "../../shared/executive";
@@ -100,7 +101,7 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
   });
 
   const [dataVersion, setDataVersion] = useState(0);
-  const [uploadMode, setUploadMode] = useState<"replace" | "merge">("replace");
+  const [uploadMode, setUploadMode] = useState<"replace" | "merge">("merge");
   const [uploading, setUploading] = useState(false);
   const readyForFilters = filters !== null;
 
@@ -188,7 +189,7 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
     const client = selectedClient;
     const periods = [...selectedPeriods].sort();
     try {
-      const blob = await downloadGastos({ client, periods: periods.join(','), coverages: selectedCoverages.join(',') });
+      const blob = await companyAnalysis.excel();
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -202,11 +203,12 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
   async function exportPdf() {
     setPrinting(true); setError(null); setGenerated(new Date());
     try {
+      await companyAnalysis.verify();
       await document.fonts.ready;
       await Promise.all(Array.from(document.querySelectorAll<HTMLImageElement>('.pdf-deck img')).map(img => img.decode()));
       await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
       window.print();
-    } catch { setError('No se pudo preparar la portada. Revisa los logos e intenta nuevamente.'); }
+    } catch { setError('No se pudo verificar el análisis o preparar el PDF. Actualiza el informe y revisa los logos.'); }
     finally { setPrinting(false); }
   }
 
@@ -247,7 +249,10 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
     setVisibleReports((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const companyAnalysis=useCompanyAnalysis({client:selectedClient,periods:[...selectedPeriods].sort().join(','),coverages:[...selectedCoverages].sort().join(',')},dataVersion);
   const slides: ReportSlide[] = [];
+  for(const kind of ['monthly','conclusions'] as const){const value=companyAnalysis.values[kind]?.analysis;if(value)slides.push({id:`analysis-${kind}`,title:kind==='monthly'?'Análisis mensual':'Conclusiones ejecutivas',content:<CompanyAnalysisView analysis={value}/>});}
+
   if (branding) slides.push({id:"cover",title:"Informe de siniestralidad",content:<ReportCover client={selectedClient} periods={selectedPeriods} coverages={selectedCoverages} branding={branding} generated={generated}/>});
   if (primasReport) {
     slides.push({ id: "insured-evolution", title: "Evolución de titulares y cargas", content: <InsuredEvolution rows={primasReport.insuredEvolution ?? []} /> });
@@ -264,10 +269,7 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
     if (visibleReports.topInsured) slides.push({ id: "insured", title: "Top asegurados", content: <TopInsuredTable report={gastosReport} /> });
   }
 
-  if (conclusion) {
-    for (let i=0;i<conclusion.sections.length;i+=2) slides.push({id:`conclusion-${i}`,title:`Conclusión ejecutiva · ${i/2+1}`,content:<ExecutiveConclusion conclusion={{...conclusion,sections:conclusion.sections.slice(i,i+2),notes:[]}}/>});
-    slides.push({id:"conclusion-notes",title:"Alcance y calidad de la información",content:<ExecutiveConclusion conclusion={{...conclusion,sections:[],notes:conclusion.notes}}/>});
-  }
+
 
   const presetButtonClass = (preset: PeriodPreset) =>
     `rounded-full border px-4 py-2 text-xs font-semibold transition ${
@@ -278,6 +280,8 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
 
   return (
     <main className="ng-report-page min-h-screen px-6 py-10 md:px-12">
+      <CompanyAnalysisControls controller={companyAnalysis}/>
+      <div className="no-print">{(['monthly','conclusions'] as const).map(kind=>companyAnalysis.values[kind]&&<CompanyAnalysisView key={kind} analysis={companyAnalysis.values[kind]!.analysis}/>)}</div>
       <header className="no-print mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-sm uppercase tracking-[0.3em] text-moss">Siniestralidad colectivos</p>
@@ -298,7 +302,7 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
           </select>
           <button
             className="rounded-full border border-ink/20 bg-white/70 px-4 py-2 text-sm"
-            disabled={!conclusion || !branding || uploading || printing || !!error}
+            disabled={!companyAnalysis.values.monthly || !companyAnalysis.values.conclusions || companyAnalysis.busy || !conclusion || !branding || uploading || printing || !!error}
             onClick={exportPdf}
           >
             Exportar PDF
@@ -491,7 +495,7 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
             <TopInsuredTable report={gastosReport} />
           </ReportToggleSection>
         )}
-        {conclusion && <ExecutiveConclusion conclusion={conclusion} />}
+        
       </div>
     </main>
   );

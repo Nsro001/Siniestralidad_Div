@@ -14,6 +14,8 @@ export type PremiumRow = {
 };
 
 export type ExpenseRow = {
+  sourcePlan?: string;
+  coverageInferred?: boolean;
   clientName: string;
   policy?: string;
   prestation?: string;
@@ -39,7 +41,7 @@ export type FiltersResponse = {
 
 export type PrimasReportSeries = {
   coverage: string;
-  series: Array<{ period: string; premiumUf: number; spendUf: number; previousPeriod?: string; previousLossRatio?: number | null }>;
+  series: Array<{ period: string; premiumUf: number|null; spendUf: number|null;lossRatio?:number|null;qualityStatus?:string; previousPeriod?: string; previousLossRatio?: number | null }>;
 };
 
 export type GastosDistributionRow = {

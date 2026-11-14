@@ -1,3 +1,4 @@
+import {companyNarrativeRouter} from './companyNarrativeRoute.js';
 import cors from "cors";
 import { buildExpenseExport } from "./expenseExport.js";
 import { buildConclusion } from "./conclusion.js";
@@ -27,6 +28,7 @@ export function createApp(verifySession = authenticate) {
 
   app.disable("x-powered-by");
   app.use(cors({ origin: (process.env.FRONTEND_ORIGIN ?? "http://localhost:5173").split(",").map(value => value.trim()) }));
+  app.use((_req,res,next)=>{res.setHeader("Cache-Control","no-store");next();});
   app.get("/health", (_req, res) => res.json({ status: "ok" }));
   app.use((_req, res, next) => { res.setHeader("Cache-Control", "no-store"); next(); });
   app.use(asyncRoute(async (req, res, next) => {
@@ -71,6 +73,8 @@ export function createApp(verifySession = authenticate) {
     const filters = await getFilters(res.locals.auth.db);
     res.json(filters);
   }));
+
+  app.use("/report/analysis",companyNarrativeRouter());
 
   app.get("/report/conclusion", asyncRoute(async (req, res) => {
     const client = String(req.query.client ?? "");
