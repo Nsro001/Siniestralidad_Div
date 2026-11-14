@@ -27,12 +27,12 @@ export function companyNarrativeRouter(service=new CompanyNarrativeService()){
   const [premiums,expenses]=await Promise.all([getRows<PremiumRow>(res.locals.auth.db,allowed.id,'primas'),getRows<ExpenseRow>(res.locals.auth.db,allowed.id,'gastos')]);
   if(req.params.kind==='export'){
    const values=[];
-   for(const kind of ['monthly','conclusions'] as const){const approved=req.query[kind+'Approved'];if(typeof approved!=='string')throw new HttpError(400,'Falta el análisis aprobado para exportar.');values.push((await service.resolve(res.locals.auth.profile.id,companyNarrative(premiums,expenses,client,periods,coverages,kind),false,approved)).analysis);}
+   for(const kind of ['monthly','conclusions'] as const){const approved=req.query[kind+'Approved'];if(typeof approved!=='string')throw new HttpError(400,'Falta el análisis aprobado para exportar.');values.push((await service.resolve(res.locals.auth.profile.id,companyNarrative(premiums,expenses,client,periods,coverages,kind,allowed.id),false,approved)).analysis);}
    res.type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');res.setHeader('Content-Disposition','attachment; filename="noergon-analisis.xlsx"');res.send(Buffer.from(await narrativeWorkbook(values,expenses,client,periods,coverages)));return;
   }
   if(!['monthly','conclusions'].includes(req.params.kind))throw new HttpError(404,'Análisis no disponible.');
   const approved=typeof req.query.approvedId==='string'?req.query.approvedId:undefined;
-  res.json(await service.resolve(res.locals.auth.profile.id,companyNarrative(premiums,expenses,client,periods,coverages,req.params.kind as NarrativeKind),req.method==='POST',approved));
+  res.json(await service.resolve(res.locals.auth.profile.id,companyNarrative(premiums,expenses,client,periods,coverages,req.params.kind as NarrativeKind,allowed.id),req.method==='POST',approved));
  }catch(e){next(e);}};
  router.get('/:kind',handle);router.post('/:kind',handle);return router;
 }

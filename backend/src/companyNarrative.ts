@@ -1,6 +1,8 @@
 import {createHash} from 'node:crypto';
 import {readFile,stat,realpath} from 'node:fs/promises';
-import {isAbsolute,relative,resolve} from 'node:path';
+import {dirname,isAbsolute,relative,resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
+const repositoryRoot=resolve(dirname(fileURLToPath(import.meta.url)),'../..');
 import type {PremiumRow,ExpenseRow} from './types.js';
 import type {CompanyNarrative,NarrativeBundle,NarrativeKind,NarrativeMetric} from '../../shared/companyNarrative.js';
 import {buildMonthlyDetail} from './monthly.js';
@@ -8,7 +10,7 @@ import {HttpError} from './supabase.js';
 const hash=(v:unknown)=>createHash('sha256').update(JSON.stringify(v)).digest('hex');
 const n=(v:number|null)=>v===null?'no disponible':v.toLocaleString('es-CL',{maximumFractionDigits:2});
 const finite=(v:number|null)=>v!==null&&Number.isFinite(v)?v:null;
-export function companyNarrative(premiums:PremiumRow[],expenses:ExpenseRow[],client:string,periodText:string,coverageText:string,kind:NarrativeKind):CompanyNarrative{
+export function companyNarrative(premiums:PremiumRow[],expenses:ExpenseRow[],client:string,periodText:string,coverageText:string,kind:NarrativeKind,clientId=client):CompanyNarrative{
  const periods=[...new Set(periodText.split(',').filter(Boolean))].sort();
  if(!periods.length||periods.length>120||periods.some(p=>!/^\d{4}-(0[1-9]|1[0-2])$/.test(p)))throw new HttpError(400,'Selecciona períodos válidos.');
  const expanded=[...new Set(coverageText.split(',').flatMap(c=>c==='Consolidado S+D+C'?['Salud','Dental','Catastrófico']:[c]).filter(Boolean))].sort();
@@ -40,7 +42,7 @@ export function companyNarrative(premiums:PremiumRow[],expenses:ExpenseRow[],cli
  {id:'focus',evidenceId:'coverage_focus',title:top?.value!==null?'Revisar la cobertura de mayor gasto declarado.':'Completar la distribución de gasto por cobertura.',measure:'Registrar los importes revisados y una decisión respaldada, sin ahorro supuesto.',deadline:'En 10 días hábiles'},
  {id:'renewal',evidenceId:'loss_ratio',title:'Validar los antecedentes necesarios para la renovación.',measure:'Documentar vigencia, conciliación, completitud y supuestos o dejar constancia de cada faltante.',deadline:'Antes de negociar la renovación'}];
  const limitations=['El gasto declarado en primas y los reembolsos positivos del detalle son bases distintas.','Las variaciones son descriptivas; no prueban causalidad ni atenciones únicas.',...(!valid?['Hay períodos o coberturas sin datos completos.']:[])];
- const contextHash=hash({kind,client,periods,coverages,premium,spend,metrics,details:details.map(d=>({period:d.period,baseline:d.baselinePeriods,analyzed:d.analyzedUf,average:d.averageExpenseUf})),version:'original-narrative-v1'});
+ const contextHash=hash({kind,client,clientId,periods,coverages,premium,spend,metrics,details:details.map(d=>({period:d.period,baseline:d.baselinePeriods,analyzed:d.analyzedUf,average:d.averageExpenseUf})),version:'original-narrative-v1'});
  const value:CompanyNarrative={id:'',contextHash,kind,source:'deterministic',model:null,periods:chosen,month,projection,metrics,conclusion,actions,limitations,fallbackReason:null};value.id=hash(value);return value;
 }
 export function narrativeCatalog(b:CompanyNarrative){return {kind:b.kind,metrics:b.metrics.filter(m=>m.value!==null&&Number.isFinite(m.value)).map(m=>({id:m.id,value:m.value,unit:m.unit})),projection:{available:false},conclusionIds:b.conclusion.map((_,i)=>`c${i}`),actions:b.actions.map(a=>({id:a.id,evidenceId:a.evidenceId}))};}
@@ -58,7 +60,7 @@ export class NativeNarrativeProvider implements NarrativeProvider{
  private async key(){
   if(process.env.GEMINI_API_KEY)return process.env.GEMINI_API_KEY.trim();
   const path=process.env.NOERGON_GEMINI_KEY_FILE;if(!path||!isAbsolute(path))throw Error('private_key_missing');
-  const actual=await realpath(path),s=await stat(actual),rel=relative(resolve('.'),actual);if(!s.isFile()||(s.mode&0o077)||s.size>10000||(!rel.startsWith('..')&&!isAbsolute(rel)))throw Error('private_key_required');return (await readFile(actual,'utf8')).trim();
+  const actual=await realpath(path),s=await stat(actual),rel=relative(repositoryRoot,actual);if(!s.isFile()||(s.mode&0o077)||s.size>10000||(!rel.startsWith('..')&&!isAbsolute(rel)))throw Error('private_key_required');return (await readFile(actual,'utf8')).trim();
  }
  async available(){
   const cap=Number(process.env.NOERGON_GEMINI_DAILY_LIMIT??0);
