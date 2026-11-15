@@ -1,18 +1,21 @@
+import {CompanyAnalysisView} from "./CompanyAnalysis";
+import type {CompanyNarrative} from "../../../shared/companyNarrative";
 import { useEffect, useRef, useState } from "react";
-import { fetchMonthlyDetail } from "../api";
+import { readCompanyAnalysis, fetchMonthlyDetail } from "../api";
 import type { MonthlyDetail } from "../../../shared/monthly";
 const number = (value: number | null) => value === null ? "Sin datos" : value.toLocaleString("es-CL", { maximumFractionDigits: 2 });
 const uf = (value: number | null) => value === null ? "Sin datos" : `${number(value)} UF`;
 export default function MonthlyDetailPanel({ client, coverage, period, onClose }: { client: string; coverage: string; period: string; onClose: () => void }) {
+  const [analysis,setAnalysis]=useState<CompanyNarrative|null>(null);
   const [data, setData] = useState<MonthlyDetail | null>(null);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
   const panel = useRef<HTMLElement>(null);
   useEffect(() => {
     let cancelled = false;
-    setData(null); setError(""); panel.current?.focus({ preventScroll: true });
+    setData(null); setAnalysis(null); setError(""); panel.current?.focus({ preventScroll: true });
     panel.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    fetchMonthlyDetail({ client, coverage, period }).then(value => { if (!cancelled) setData(value); })
+    Promise.all([fetchMonthlyDetail({ client, coverage, period }),readCompanyAnalysis("monthly",{client,periods:period,coverages:coverage})]).then(([value,brief]) => { if (!cancelled) {setData(value);setAnalysis(brief.analysis);} })
       .catch(err => { if (!cancelled) setError(err instanceof Error ? err.message : "No se pudo cargar el detalle."); });
     return () => { cancelled = true; };
   }, [client, coverage, period, retry]);
@@ -22,6 +25,8 @@ export default function MonthlyDetailPanel({ client, coverage, period, onClose }
   }}>
     <div className="portfolio-heading"><div><h3 className="font-display text-xl">¿Qué pasó en {period}?</h3><p className="account-muted">{coverage} · {client}</p></div><button className="account-secondary" onClick={onClose}>Cerrar detalle</button></div>
     {error ? <div role="alert" className="account-error mt-4">{error} <button onClick={() => setRetry(value => value + 1)}>Reintentar</button></div> : !data ? <p role="status" className="mt-4">Analizando el mes…</p> : <>
+      {analysis&&<CompanyAnalysisView analysis={analysis}/>}
+      <details className="mt-4"><summary>Ver detalle técnico y conciliación</summary>
       <p className="account-muted text-sm mt-4">Comparación con el promedio de los tres meses calendario anteriores que tienen primas y gastos para esta cobertura. Meses usados: {data.baselinePeriods.join(", ") || "ninguno"}.{data.missingBaselinePeriods.length > 0 && ` Sin datos comparables: ${data.missingBaselinePeriods.join(", ")}.`} Se consulta el historial cargado, aunque esté fuera del período visible del gráfico.</p>
       <div className="portfolio-table mt-4"><table><thead><tr><th>Indicador</th><th>Mes seleccionado</th><th>Referencia anterior</th></tr></thead><tbody>
         {[
@@ -41,7 +46,8 @@ export default function MonthlyDetailPanel({ client, coverage, period, onClose }
       <p className="account-muted text-sm">Incluye únicamente Clasif.Cob = Hospitalización, Gastos hospitalarios u Hospitalarios (sin distinguir mayúsculas ni tildes). Otras categorías quedan en el desglose.</p>
       <div className="accounts-grid mt-6">{[{ title: "Principales prestadores", rows: data.providers }, { title: "Concentración por paciente", rows: data.cases }].map(group => <section key={group.title}><h4 className="font-display text-lg">{group.title}</h4>{group.rows.length ? <ul className="monthly-ranking">{group.rows.map(row => <li key={row.name}><span>{row.name}</span><strong>{uf(row.amountUf)} · {number(row.share * 100)} %</strong></li>)}</ul> : <p className="account-muted">Sin datos.</p>}</section>)}</div>
       <p className="account-muted text-sm mt-3">Los casos son pacientes identificados, numerados por monto dentro de este mes; no representan episodios clínicos. No se muestran sus RUT.</p>
-      <details className="mt-6" open={data.differenceUf !== null && Math.abs(data.differenceUf) > .01}><summary>Conciliación de los montos</summary><p className="mt-2">Gasto del gráfico: {uf(data.chartSpendUf)}. Reembolso total de la sábana de gastos: {uf(data.rawExpenseUf)}. Diferencia (gráfico − reembolsos): {uf(data.differenceUf)}.</p><p className="account-muted text-sm mt-2">Monto neto fuera del análisis: {uf(data.excludedUf)}. El desglose considera reembolsos positivos y aplica las mismas exclusiones de prestaciones que el reporte de distribución. La conciliación usa todas las filas, incluidos ajustes negativos. Si hay diferencias, el detalle no explica por completo el gasto del gráfico.</p></details>
+      <details className="mt-6"><summary>Conciliación de los montos</summary><p className="mt-2">Gasto del gráfico: {uf(data.chartSpendUf)}. Reembolso total de la sábana de gastos: {uf(data.rawExpenseUf)}. Diferencia (gráfico − reembolsos): {uf(data.differenceUf)}.</p><p className="account-muted text-sm mt-2">Monto neto fuera del análisis: {uf(data.excludedUf)}. El desglose considera reembolsos positivos y aplica las mismas exclusiones de prestaciones que el reporte de distribución. La conciliación usa todas las filas, incluidos ajustes negativos. Si hay diferencias, el detalle no explica por completo el gasto del gráfico.</p></details>
+      </details>
     </>}
   </section>;
 }

@@ -103,6 +103,7 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
   const [dataVersion, setDataVersion] = useState(0);
   const [uploadMode, setUploadMode] = useState<"replace" | "merge">("merge");
   const [uploading, setUploading] = useState(false);
+  const [analysisOpen, setAnalysisOpen] = useState(false);
   const readyForFilters = filters !== null;
 
   useEffect(() => {
@@ -223,6 +224,7 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
   );
 
   const handleUpload = async (endpoint: "/upload/primas" | "/upload/gastos", file: File) => {
+    setAnalysisOpen(false);
     setError(null); setUploading(true);
     try {
       const response = await uploadFile(endpoint, file, uploadMode);
@@ -251,7 +253,6 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
 
   const companyAnalysis=useCompanyAnalysis({client:selectedClient,periods:[...selectedPeriods].sort().join(','),coverages:[...selectedCoverages].sort().join(',')},dataVersion);
   const slides: ReportSlide[] = [];
-  for(const kind of ['monthly','conclusions'] as const){const value=companyAnalysis.values[kind]?.analysis;if(value)slides.push({id:`analysis-${kind}`,title:kind==='monthly'?'Análisis mensual':'Conclusiones ejecutivas',content:<CompanyAnalysisView analysis={value}/>});}
 
   if (branding) slides.push({id:"cover",title:"Informe de siniestralidad",content:<ReportCover client={selectedClient} periods={selectedPeriods} coverages={selectedCoverages} branding={branding} generated={generated}/>});
   if (primasReport) {
@@ -271,6 +272,8 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
 
 
 
+  if(companyAnalysis.values.conclusions) slides.push({id:'analysis-conclusions',title:'Conclusiones y renovación',content:<CompanyAnalysisView analysis={companyAnalysis.values.conclusions.analysis}/>});
+
   const presetButtonClass = (preset: PeriodPreset) =>
     `rounded-full border px-4 py-2 text-xs font-semibold transition ${
       periodPreset === preset
@@ -280,8 +283,6 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
 
   return (
     <main className="ng-report-page min-h-screen px-6 py-10 md:px-12">
-      <CompanyAnalysisControls controller={companyAnalysis}/>
-      <div className="no-print">{(['monthly','conclusions'] as const).map(kind=>companyAnalysis.values[kind]&&<CompanyAnalysisView key={kind} analysis={companyAnalysis.values[kind]!.analysis}/>)}</div>
       <header className="no-print mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-sm uppercase tracking-[0.3em] text-moss">Siniestralidad colectivos</p>
@@ -302,7 +303,7 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
           </select>
           <button
             className="rounded-full border border-ink/20 bg-white/70 px-4 py-2 text-sm"
-            disabled={!companyAnalysis.values.monthly || !companyAnalysis.values.conclusions || companyAnalysis.busy || !conclusion || !branding || uploading || printing || !!error}
+            disabled={!companyAnalysis.values.conclusions || companyAnalysis.busy || !conclusion || !branding || uploading || printing || !!error}
             onClick={exportPdf}
           >
             Exportar PDF
@@ -319,11 +320,13 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
       {profile.role === "admin" && <>
       <p className="no-print mb-4 text-sm text-ink/70">Máximo 30 MB por archivo. Para gastos grandes se recomienda CSV UTF-8, separado por coma o punto y coma; también se acepta Excel. El resumen de cartera muestra los clientes con primas cargadas.</p>
       <label className="no-print block mb-4">Tipo de carga <select value={uploadMode} disabled={uploading} onChange={event => setUploadMode(event.target.value as "replace" | "merge")}><option value="replace">Reemplazar la sábana completa</option><option value="merge">Actualizar solo los clientes del archivo</option></select><span className="block text-sm mt-2">{uploadMode === "replace" ? "Se reemplazan todos los datos del tipo cargado (primas o gastos), incluidos los de clientes ausentes del nuevo archivo. Carga ambos archivos para renovar ambas sábanas." : "Se conservan los datos de los clientes que no aparecen en el archivo."}</span></label>
+      {uploading && <p className="no-print mb-4" role="status">Procesando la sábana. Espera la confirmación antes de repetir la carga.</p>}
       <section className="no-print grid gap-6 md:grid-cols-2">
         <div className="glass-panel rounded-3xl p-6 shadow-soft-xl">
           <h2 className="font-display text-xl">Sábana de Primas</h2>
           <input
             type="file"
+            aria-label="Cargar sábana de primas"
             disabled={uploading}
             accept=".xls,.xlsx,.csv"
             onChange={(event) => {
@@ -339,6 +342,7 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
           <h2 className="font-display text-xl">Sábana de Gastos</h2>
           <input
             type="file"
+            aria-label="Cargar sábana de gastos"
             disabled={uploading}
             accept=".xls,.xlsx,.csv"
             onChange={(event) => {
@@ -416,6 +420,15 @@ export default function App({ profile, initialClient = "" }: { profile: AccountP
         </p>
         {error && <p className="mt-4 text-sm text-ember">{error}</p>}
         {brandingError && <p role="alert" className="mt-4 text-sm text-ember">{brandingError} La exportación PDF requiere cargar la portada.</p>}
+      </section>
+
+      <section className="no-print account-ui mt-8" aria-label="Análisis ejecutivo">
+        <button className="account-secondary" aria-expanded={analysisOpen} aria-controls="company-analysis-panel" disabled={uploading} onClick={() => setAnalysisOpen(value => !value)}>{analysisOpen ? 'Ocultar análisis ejecutivo' : 'Ver análisis ejecutivo'}</button>
+        {analysisOpen && <div id="company-analysis-panel" className="mt-4">
+          <CompanyAnalysisControls controller={companyAnalysis}/>
+          {(['conclusions'] as const).map(kind=>companyAnalysis.values[kind]&&<CompanyAnalysisView key={kind} analysis={companyAnalysis.values[kind]!.analysis}/>)}
+          {(!companyAnalysis.values.conclusions) && !companyAnalysis.error && <p role="status">Preparando el análisis del informe…</p>}
+        </div>}
       </section>
 
       <section className="no-print account-ui report-view-controls mt-8" aria-label="Vista del reporte">

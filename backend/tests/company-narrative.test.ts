@@ -33,3 +33,18 @@ test('API: autenticación, ámbito por cliente y cifras del navegador ignoradas'
  const server=app.listen(0,'127.0.0.1');await new Promise<void>(r=>server.once('listening',r));const url=`http://127.0.0.1:${(server.address() as any).port}/report/analysis/monthly?`,params=new URLSearchParams({client:'Empresa PRIVADA',periods:'2026-01,2026-02',coverages:'Salud'}),headers={Authorization:'Bearer synthetic','Content-Type':'application/json'};
  try{assert.equal((await fetch(url+params)).status,401);assert.equal((await fetch(url+new URLSearchParams({...Object.fromEntries(params),client:'Otro'}),{headers})).status,403);const result=await fetch(url+params,{method:'POST',headers,body:JSON.stringify({premium:999})});assert.equal(result.status,200);assert.equal((await result.json()).analysis.projection.currentPremiumUf,100);assert.equal(calls,1);}finally{server.closeAllConnections();await new Promise<void>(r=>server.close(()=>r()));}
 });
+test('escenario 75 %: incremento, decremento y mejora alternativa sin superar objetivo',()=>{
+ const periods=Array.from({length:12},(_,i)=>`2025-${String(i+1).padStart(2,'0')}`);
+ const build=(cost:number,ps=periods)=>companyNarrative(ps.map(period=>({clientName:'QA',coverage:'Salud',period,premiumUf:100,spendUf:cost})),[],'QA',ps.join(','),'Salud','conclusions');
+ const high=build(90);assert.equal(high.projection.projectedPremiumUf,1440);assert.ok(Math.abs(high.projection.variationPercent!-20)<1e-10);assert.equal(high.projection.variationUf,240);assert.equal(high.projection.coverageBudgetUf,0);assert.ok(!high.actions[2].title.includes('mejora'));
+ const low=build(60);assert.equal(low.projection.projectedPremiumUf,960);assert.ok(Math.abs(low.projection.variationPercent!+20)<1e-10);assert.equal(low.projection.coverageBudgetUf,180);assert.equal((720+180)/1200,.75);assert.match(low.actions[2].measure,/alternativa.*no acumulable/);assert.match(low.actions[2].measure,/180 UF/);
+ const equal=build(75);assert.equal(equal.projection.variationPercent,0);assert.equal(equal.projection.coverageBudgetUf,0);
+ for(const b of [build(0),build(-1),build(90,periods.slice(1)),build(90,[...periods.slice(0,11),'2026-01'])])assert.equal(b.projection.available,false);
+ const missing=companyNarrative(periods.map(period=>({clientName:'QA',coverage:'Salud',period,premiumUf:100,spendUf:60})).concat([{clientName:'QA',coverage:'Dental',period:'2025-01',premiumUf:10,spendUf:2}]),[],'QA',periods.join(','),'Salud,Dental','conclusions');assert.equal(missing.projection.available,false);
+});
+test('Excel ejecutivo replica el escenario, tres conclusiones y tres acciones sin cambiar el detalle',async()=>{
+ const periods=Array.from({length:12},(_,i)=>`2025-${String(i+1).padStart(2,'0')}`),rows=periods.map(period=>({clientName:'QA',coverage:'Salud',period,premiumUf:100,spendUf:60}));
+ const a=companyNarrative(rows,[],'QA',periods.join(','),'Salud','conclusions'),book=new ExcelJS.Workbook();await book.xlsx.load(await narrativeWorkbook([a],[],'QA',periods.join(','),'Salud'));
+ const sheet=book.worksheets[0],values=sheet.getSheetValues() as any[];const row=(key:string)=>values.find(r=>r?.[1]===key);
+ assert.equal(row('Prima del escenario UF')[2],960);assert.equal(row('Variación UF')[2],-240);for(const line of a.conclusion)assert.ok(row(line));for(const action of a.actions)assert.equal(row(action.title)[2],action.measure);assert.equal(sheet.name,'Conclusiones ejecutivas');
+});
