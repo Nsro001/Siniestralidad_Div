@@ -56,3 +56,12 @@ test('prestaciones: suma de aportes, bajas, nueva prestación y acciones especí
  assert.throws(()=>selectNarrative(b,{...selection(b),metricIds:['prestation_1','prestation_2']}));
  const lower=companyNarrative(p,rows.map(r=>r.period==='2026-02'?{...r,reembolsoUf:r.reembolsoUf/10}:r),'QA','2026-02','Salud','monthly');assert.ok(lower.metrics.every(m=>m.value!<0));assert.match(lower.actions[0].title,/Verificar el descenso/);assert.match(lower.actions[0].measure,/rezagos/);
 });
+
+test('claves: formatos antiguos y auth keys nuevos; rechaza controles y límites inválidos sin red',async()=>{
+ const names=['NOERGON_GEMINI_REAL_ENABLED','NOERGON_GEMINI_BILLING_DISABLED_CONFIRMED','NOERGON_GEMINI_DAILY_LIMIT','GEMINI_API_KEY'],before=names.map(n=>process.env[n]);let calls=0;
+ try{Object.assign(process.env,{NOERGON_GEMINI_REAL_ENABLED:'true',NOERGON_GEMINI_BILLING_DISABLED_CONFIRMED:'true',NOERGON_GEMINI_DAILY_LIMIT:'10'});
+ for(const key of ['AIza'+'synthetic_'.repeat(4),'AQ.'+'synthetic-_.'.repeat(8)]){process.env.GEMINI_API_KEY=key;const p=new NativeNarrativeProvider((async()=>{calls++;throw Error('must_not_generate');}) as typeof fetch);assert.equal((await p.available()).available,true);}
+ for(const key of ['short','AQ.'+'x'.repeat(2048),'AQ.'+'x'.repeat(25)+'\nInjected','AQ.'+'x'.repeat(25)+'\u0001']){process.env.GEMINI_API_KEY=key;assert.equal((await new NativeNarrativeProvider().available()).available,false);}
+ assert.equal(calls,0);
+ }finally{names.forEach((n,i)=>{if(before[i]===undefined)delete process.env[n];else process.env[n]=before[i];});}
+});

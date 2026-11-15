@@ -112,7 +112,7 @@ export class NativeNarrativeProvider implements NarrativeProvider{
  async available(){
   const cap=Number(process.env.NOERGON_GEMINI_DAILY_LIMIT??0);
   if(process.env.NOERGON_GEMINI_REAL_ENABLED!=='true'||process.env.NOERGON_GEMINI_BILLING_DISABLED_CONFIRMED!=='true'||!Number.isSafeInteger(cap)||cap<1||cap>500)return {available:false,reason:'Gemini requiere habilitación y un cupo autorizado; el análisis sin IA está disponible.',remaining:0};
-  try{const key=await this.key();if(!/^AIza[\w-]{20,}$/.test(key))throw Error();const day=new Date(this.now()).toISOString().slice(0,10),all=this.calls.get(day)??[],remaining=Math.max(0,cap-all.length);return {available:remaining>0&&all.filter(t=>this.now()-t<60000).length<15,reason:remaining?'Disponible bajo demanda.':'Límite local alcanzado; sin reintentos.',remaining};}catch{return {available:false,reason:'La clave del backend no está configurada.',remaining:0};}
+  try{const key=await this.key();if(key.length<20||key.length>2048||!/^[\x21-\x7e]+$/.test(key))throw Error();const day=new Date(this.now()).toISOString().slice(0,10),all=this.calls.get(day)??[],remaining=Math.max(0,cap-all.length);return {available:remaining>0&&all.filter(t=>this.now()-t<60000).length<15,reason:remaining?'Disponible bajo demanda.':'Límite local alcanzado; sin reintentos.',remaining};}catch{return {available:false,reason:'La clave del backend no está configurada.',remaining:0};}
  }
  async generate(b:CompanyNarrative){
   const catalog=narrativeCatalog(b);if(catalog.metrics.length<3||catalog.actions.some(a=>!catalog.metrics.some(m=>m.id===a.evidenceId)))throw new HttpError(422,'Faltan indicadores agregados válidos.');
