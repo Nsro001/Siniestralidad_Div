@@ -1,31 +1,36 @@
 import {CompanyAnalysisView} from "./CompanyAnalysis";
-import type {CompanyNarrative} from "../../../shared/companyNarrative";
+import type {NarrativeBundle,CompanyNarrative} from "../../../shared/companyNarrative";
 import { useEffect, useRef, useState } from "react";
-import { readCompanyAnalysis, fetchMonthlyDetail } from "../api";
+import { generateCompanyAnalysis, readCompanyAnalysis, fetchMonthlyDetail } from "../api";
 import type { MonthlyDetail } from "../../../shared/monthly";
 const number = (value: number | null) => value === null ? "Sin datos" : value.toLocaleString("es-CL", { maximumFractionDigits: 2 });
 const uf = (value: number | null) => value === null ? "Sin datos" : `${number(value)} UF`;
 export default function MonthlyDetailPanel({ client, coverage, period, onClose }: { client: string; coverage: string; period: string; onClose: () => void }) {
+  const [availability,setAvailability]=useState<NarrativeBundle["gemini"]|null>(null);
+  const [aiError,setAiError]=useState("");
+  const [generating,setGenerating]=useState(false);
+  const active=useRef(0);
   const [analysis,setAnalysis]=useState<CompanyNarrative|null>(null);
   const [data, setData] = useState<MonthlyDetail | null>(null);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
   const panel = useRef<HTMLElement>(null);
   useEffect(() => {
-    let cancelled = false;
+    let cancelled = false;const generation=++active.current;setGenerating(false);setAvailability(null);setAiError("");
     setData(null); setAnalysis(null); setError(""); panel.current?.focus({ preventScroll: true });
     panel.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    Promise.all([fetchMonthlyDetail({ client, coverage, period }),readCompanyAnalysis("monthly",{client,periods:period,coverages:coverage})]).then(([value,brief]) => { if (!cancelled) {setData(value);setAnalysis(brief.analysis);} })
+    Promise.all([fetchMonthlyDetail({ client, coverage, period }),readCompanyAnalysis("monthly",{client,periods:period,coverages:coverage})]).then(([value,brief]) => { if (!cancelled) {setData(value);setAnalysis(brief.analysis);setAvailability(brief.gemini);} })
       .catch(err => { if (!cancelled) setError(err instanceof Error ? err.message : "No se pudo cargar el detalle."); });
-    return () => { cancelled = true; };
+    return () => { cancelled = true;if(active.current===generation)active.current++; };
   }, [client, coverage, period, retry]);
+  async function generate(){if(generating||!availability?.available)return;const generation=active.current;setGenerating(true);setAiError("");try{const result=await generateCompanyAnalysis('monthly',{client,periods:period,coverages:coverage});if(active.current===generation){setAnalysis(result.analysis);setAvailability(result.gemini);}}catch{if(active.current===generation)setAiError('IA no disponible; se conserva el análisis calculado.');}finally{if(active.current===generation)setGenerating(false);}}
   return <section ref={panel} tabIndex={-1} aria-label={`Detalle de ${period}, ${coverage}`} className="monthly-detail account-ui mt-4" onKeyDown={event => {
     if (event.key === "Escape") { event.stopPropagation(); onClose(); }
     if (event.key === "ArrowLeft" || event.key === "ArrowRight") event.stopPropagation();
   }}>
     <div className="portfolio-heading"><div><h3 className="font-display text-xl">¿Qué pasó en {period}?</h3><p className="account-muted">{coverage} · {client}</p></div><button className="account-secondary" onClick={onClose}>Cerrar detalle</button></div>
     {error ? <div role="alert" className="account-error mt-4">{error} <button onClick={() => setRetry(value => value + 1)}>Reintentar</button></div> : !data ? <p role="status" className="mt-4">Analizando el mes…</p> : <>
-      {analysis&&<CompanyAnalysisView analysis={analysis}/>}
+      {analysis&&<><button className="account-primary no-print mt-4" disabled={generating||!availability?.available} onClick={()=>void generate()}>Analizar mes con IA</button><p className="text-sm no-print">{generating?'Analizando…':availability?.available?`Cupo disponible: ${availability.remaining}. Solo indicadores desidentificados.`:availability?.reason}</p>{aiError&&<p role="alert">{aiError}</p>}<p className="text-sm no-print">Máximo 10 solicitudes diarias por proceso. El contador se reinicia con el backend.</p><CompanyAnalysisView analysis={analysis}/></>}
       <details className="mt-4"><summary>Ver detalle técnico y conciliación</summary>
       <p className="account-muted text-sm mt-4">Comparación con el promedio de los tres meses calendario anteriores que tienen primas y gastos para esta cobertura. Meses usados: {data.baselinePeriods.join(", ") || "ninguno"}.{data.missingBaselinePeriods.length > 0 && ` Sin datos comparables: ${data.missingBaselinePeriods.join(", ")}.`} Se consulta el historial cargado, aunque esté fuera del período visible del gráfico.</p>
       <div className="portfolio-table mt-4"><table><thead><tr><th>Indicador</th><th>Mes seleccionado</th><th>Referencia anterior</th></tr></thead><tbody>

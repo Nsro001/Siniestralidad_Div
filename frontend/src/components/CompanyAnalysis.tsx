@@ -5,13 +5,14 @@ const fmt=(v:number|null|undefined)=>v==null?'no disponible':v.toLocaleString('e
 export function CompanyAnalysisView({analysis}:{analysis:CompanyNarrative}){
  const monthly=analysis.kind==='monthly',p=analysis.projection;
  return <section className="glass-panel rounded-3xl p-6 company-analysis"><h2 className="font-display text-2xl">{monthly?`Qué pasó en ${analysis.month}`:'Conclusiones y renovación'}</h2>
+ <p className="text-sm">{analysis.source==='gemini'?'Priorizado con IA · indicadores y acciones validados por NOERGON':'Análisis de prestaciones calculado por NOERGON'}</p>
  <h3 className="mt-4 font-semibold">{monthly?'Tres impactos del mes':'Tres conclusiones del período'}</h3>
  {monthly?<ol data-testid="monthly-impacts">{analysis.metrics.slice(0,3).map(m=><li key={m.id}><strong>{m.label}: {fmt(m.value)} {m.value===null?'':m.unit}</strong> · {m.reference}</li>)}</ol>:<ol data-testid="executive-conclusions">{analysis.conclusion.slice(0,3).map((line,i)=><li key={i}>{line}</li>)}</ol>}
  {!monthly&&<><h3 className="mt-4 font-semibold">Proyección de prima de renovación</h3>
  <p><strong>{p.available?`${p.variationPercent!>0?'Incremento':p.variationPercent!<0?'Decremento':'Sin variación'}: ${fmt(p.variationPercent)} % · ${fmt(p.variationUf)} UF`:'Proyección no disponible'}</strong></p>
  <p>Prima del período: {fmt(p.currentPremiumUf)} UF · Prima del escenario: {fmt(p.projectedPremiumUf)} UF.</p><p className="text-sm">{p.reason}</p></>}
  <h3 className="mt-4 font-semibold">Tres acciones correctivas</h3><ol data-testid="corrective-actions">{analysis.actions.slice(0,3).map(a=><li key={a.id}><strong>{a.title}</strong> {a.measure} Plazo: {a.deadline}.</li>)}</ol>
- <p className="text-sm mt-4">Las variaciones describen los datos, no prueban causalidad. El 75 % es un objetivo técnico solicitado, no el punto de equilibrio contractual de la aseguradora.</p>{analysis.fallbackReason&&<p role="status">{analysis.fallbackReason}</p>}
+ <p className="text-sm mt-4">El reembolso del detalle puede diferir del gasto declarado. Las variaciones no prueban causalidad. El 75 % es un objetivo técnico solicitado, no el punto de equilibrio contractual de la aseguradora.</p>{analysis.fallbackReason&&<p role="status">{analysis.fallbackReason}</p>}
  </section>;
 }
 export function useCompanyAnalysis(query:Record<string,string>,revision:number){
@@ -28,10 +29,7 @@ export function useCompanyAnalysis(query:Record<string,string>,revision:number){
  return {values,busy,error,generate,verify,excel};
 }
 export function CompanyAnalysisControls({controller}:{controller:ReturnType<typeof useCompanyAnalysis>}){
- const available=controller.values.monthly?.gemini.available || controller.values.conclusions?.gemini.available;
- if(!available)return controller.error?<p role="alert">{controller.error}</p>:null;
- return <div className="no-print mt-4">
- <button className="account-secondary" disabled={controller.busy||!controller.values.conclusions?.gemini.available} onClick={()=>void controller.generate('conclusions')}>Generar conclusiones con Gemini</button>
- {controller.busy&&<p role="status">Generando análisis bajo demanda…</p>}{controller.error&&<p role="alert">{controller.error}</p>}
- {controller.values.conclusions&&!controller.values.conclusions.gemini.available&&<p>{controller.values.conclusions.gemini.reason}</p>}</div>;
+ const value=controller.values.conclusions;
+ return <div className="no-print mt-4"><button className="account-primary" disabled={controller.busy||!value?.gemini.available} onClick={()=>void controller.generate('conclusions')}>Analizar con IA</button>
+ {controller.busy?<p role="status">Analizando bajo demanda…</p>:value&&<p className="text-sm">{value.gemini.available?`Cupo disponible: ${value.gemini.remaining}. Solo indicadores desidentificados.`:value.gemini.reason}</p>}<p className="text-sm">Límite de 10 solicitudes diarias por proceso; el contador se reinicia si Render reinicia el backend. Sin llamadas automáticas ni reintentos.</p>{controller.error&&<p role="alert">{controller.error}</p>}</div>;
 }

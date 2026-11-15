@@ -2,16 +2,16 @@ import {test} from 'node:test';import assert from 'node:assert/strict';import ex
 import {companyNarrative,narrativeCatalog,selectNarrative,NativeNarrativeProvider,CompanyNarrativeService} from '../src/companyNarrative.js';
 import {companyNarrativeRouter,narrativeWorkbook} from '../src/companyNarrativeRoute.js';import {buildExpenseExport} from '../src/expenseExport.js';
 const premiums=['2026-01','2026-02'].map((period,i)=>({clientName:'Empresa PRIVADA',clientRut:'RUT PRIVADO',period,coverage:'Salud',premiumUf:100,spendUf:60+i*20}));
-const expenses=['2026-01','2026-02'].map((period,i)=>({clientName:'Empresa PRIVADA',period,coverage:'Salud',descCober:'Consulta',reembolsoUf:60+i*20,provider:'PRESTADOR PRIVADO',patientRut:'RUT PRIVADO'} as any));
+const expenses=['2026-01','2026-02'].flatMap((period,i)=>[.5,.3,.2].map((share,j)=>({clientName:'Empresa PRIVADA',period,coverage:'Salud',descCober:['Consultas','Exámenes','Medicamentos'][j],reembolsoUf:(60+i*20)*share,provider:'PRESTADOR PRIVADO',patientRut:'RUT PRIVADO'} as any)));
 const base=()=>companyNarrative(premiums,expenses,'Empresa PRIVADA','2026-01,2026-02','Salud','monthly');
 const selection=(b=base())=>({projection:'backend' as const,metricIds:b.metrics.map(m=>m.id),conclusionIds:['c0','c1','c2'],actionIds:b.actions.map(a=>a.id)});
 test('mensual y privacidad: siniestralidad, comparación, acciones y proyección verificadas',()=>{
- const combined=companyNarrative(premiums,expenses,'Empresa PRIVADA','2026-01,2026-02','Salud,Consolidado S+D+C','monthly');assert.equal(combined.metrics[0].value,80);
- const b=base();assert.equal(b.metrics[0].value,80);assert.equal(b.metrics.find(m=>m.id==='expense_change')!.value,20);assert.equal(b.projection.currentPremiumUf,100);assert.equal(b.projection.available,false);assert.equal(b.conclusion.length,3);assert.equal(b.actions.length,3);
+ const combined=companyNarrative(premiums,expenses,'Empresa PRIVADA','2026-01,2026-02','Salud,Consolidado S+D+C','monthly');assert.equal(combined.projection.currentPremiumUf,100);
+ const b=base();assert.equal(b.metrics.length,3);assert.equal(b.metrics.reduce((sum,m)=>sum+m.value!,0),20);assert.equal(b.projection.currentPremiumUf,100);assert.equal(b.projection.available,false);assert.equal(b.conclusion.length,3);assert.equal(b.actions.length,3);
  const json=JSON.stringify(narrativeCatalog(b));for(const s of ['PRIVAD','RUT','patient','client','Empresa'])assert.ok(!json.includes(s));
  assert.deepEqual(selectNarrative(b,selection()).projection,b.projection);assert.throws(()=>selectNarrative(b,{...selection(),premium:999}));assert.throws(()=>selectNarrative(b,{...selection(),actionIds:['inventado']}));assert.throws(()=>selectNarrative(b,{...selection(),metricIds:['loss_ratio','coverage_focus']}));
  const missing=companyNarrative([],[],'A','2026-02','Salud','conclusions');assert.ok(missing.metrics.every(m=>m.value===null));assert.equal(missing.actions.length,3);
- const invalid=companyNarrative(premiums.map(p=>({...p,premiumUf:Infinity})),expenses,'Empresa PRIVADA','2026-02','Salud','monthly');assert.equal(invalid.metrics[0].value,null);
+ const invalid=companyNarrative(premiums.map(p=>({...p,premiumUf:Infinity})),expenses,'Empresa PRIVADA','2026-02','Salud','monthly');assert.equal(invalid.projection.currentPremiumUf,null);
 });
 test('REST simulado: salida estructurada, cuota concurrente y fallo sin reintentos',async()=>{
  const keys=['NOERGON_GEMINI_REAL_ENABLED','NOERGON_GEMINI_BILLING_DISABLED_CONFIRMED','NOERGON_GEMINI_DAILY_LIMIT','GEMINI_API_KEY'];const prior=keys.map(k=>process.env[k]);Object.assign(process.env,{NOERGON_GEMINI_REAL_ENABLED:'true',NOERGON_GEMINI_BILLING_DISABLED_CONFIRMED:'true',NOERGON_GEMINI_DAILY_LIMIT:'1',GEMINI_API_KEY:'AIza'+'synthetic_only_key_'.repeat(3)});let calls=0;
@@ -47,4 +47,12 @@ test('Excel ejecutivo replica el escenario, tres conclusiones y tres acciones si
  const a=companyNarrative(rows,[],'QA',periods.join(','),'Salud','conclusions'),book=new ExcelJS.Workbook();await book.xlsx.load(await narrativeWorkbook([a],[],'QA',periods.join(','),'Salud'));
  const sheet=book.worksheets[0],values=sheet.getSheetValues() as any[];const row=(key:string)=>values.find(r=>r?.[1]===key);
  assert.equal(row('Prima del escenario UF')[2],960);assert.equal(row('Variación UF')[2],-240);for(const line of a.conclusion)assert.ok(row(line));for(const action of a.actions)assert.equal(row(action.title)[2],action.measure);assert.equal(sheet.name,'Conclusiones ejecutivas');
+});
+test('prestaciones: suma de aportes, bajas, nueva prestación y acciones específicas sin filtrar datos',()=>{
+ const p=['2026-01','2026-02'].map(period=>({clientName:'QA',period,coverage:'Salud',premiumUf:100,spendUf:70}));
+ const rows=[['2026-01','Consultas',20],['2026-01','Exámenes',20],['2026-01','Medicamentos',20],['2026-02','Consultas',10],['2026-02','Exámenes',50],['2026-02','Medicamentos',25],['2026-02','Nueva categoría',5]].map(([period,descCober,reembolsoUf])=>({clientName:'QA',coverage:'Salud',period,descCober,reembolsoUf,provider:'PRIVADO',patientRut:'PRIVADO'} as any));
+ const b=companyNarrative(p,rows,'QA','2026-01,2026-02','Salud','monthly');assert.match(b.metrics[0].label,/Exámenes/);assert.equal(b.metrics[0].value,30);assert.equal(b.actions.length,3);assert.equal(b.metrics.length,3);assert.match(b.actions[0].measure,/repetición de líneas/);assert.match(b.metrics[2].reference,/sin base positiva/);
+ const catalog=JSON.stringify(narrativeCatalog(b));for(const text of ['Consultas','Exámenes','Medicamentos','QA','PRIVADO','2026','UF'])assert.ok(!catalog.includes(text));
+ assert.throws(()=>selectNarrative(b,{...selection(b),metricIds:['prestation_1','prestation_2']}));
+ const lower=companyNarrative(p,rows.map(r=>r.period==='2026-02'?{...r,reembolsoUf:r.reembolsoUf/10}:r),'QA','2026-02','Salud','monthly');assert.ok(lower.metrics.every(m=>m.value!<0));assert.match(lower.actions[0].title,/Verificar el descenso/);assert.match(lower.actions[0].measure,/rezagos/);
 });
